@@ -1,579 +1,259 @@
 <!doctype html>
-<html lang="uk" class="h-full">
+<html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Крипто-Сніг QR: Секретний Термінал</title>
-  
-  <!-- Tailwind CSS Play CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Google Fonts: Space Grotesk, Inter, JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- CDN dependencies for decoding and encoding QR Codes -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Крипто-Сніг Terminal</title>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-
   <style>
-    /* Custom Theme overrides */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background-color: #040405;
-      color: #c2c5c8;
-      font-family: 'Inter', sans-serif;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Основной контейнер под размер макета из PS */
+    .app-wrapper {
+      width: 1440px;
+      height: 900px;
+      position: relative;
+      background: url('004.jpg') no-repeat center center;
+      background-size: cover;
+      transform-origin: center center;
+      overflow: hidden;
     }
 
-    .font-sans {
-      font-family: 'Inter', sans-serif;
-    }
-
-    .font-display {
-      font-family: 'Space Grotesk', sans-serif;
-    }
-
-    .font-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* Screen Shake Animation for incorrect codes */
-    @keyframes shake {
-      0%, 100% { transform: translate(0, 0); }
-      10%, 30%, 50%, 70%, 90% { transform: translate(-8px, 0); }
-      20%, 40%, 60%, 80% { transform: translate(8px, 0); }
-    }
-
-    .shake-anim {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    }
-
-    /* Scan Laser Line animation */
-    @keyframes scan {
-      0% { top: 0%; }
-      50% { top: 100%; }
-      100% { top: 0%; }
-    }
-
-    .scan-line-anim {
-      animation: scan 2.5s ease-in-out infinite;
-    }
-
-    /* Custom cyber buttons */
-    .action-btn {
-      background-color: rgba(16, 185, 129, 0.08);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      padding: 0.6rem 1.4rem;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.75rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      font-weight: 700;
-      border-radius: 4px;
-      transition: all 0.25s ease-in-out;
+    /* Невидимые интерактивные зоны с подсветкой */
+    .zone {
+      position: absolute;
+      background: url('003.jpg') no-repeat;
+      background-size: 1440px 900px;
+      opacity: 0;
+      transition: opacity 0.15s ease-in-out;
       cursor: pointer;
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.05);
-      backdrop-filter: blur(4px);
+      z-index: 10;
+    }
+    .zone:hover { opacity: 1; }
+
+    .zone-create { left: 306px; top: 227px; width: 283px; height: 54px; background-position: -306px -227px; }
+    .zone-scan { left: 1105px; top: 225px; width: 283px; height: 54px; background-position: -1105px -225px; }
+    .zone-rules { left: 707px; top: 834px; width: 269px; height: 57px; background-position: -707px -834px; }
+    .zone-back { left: 610px; top: 827px; width: 79px; height: 56px; background-position: -610px -827px; }
+    .zone-save { left: 999px; top: 826px; width: 60px; height: 68px; background-position: -999px -826px; }
+
+    /* Центральное окно */
+    .center-window {
+      position: absolute;
+      left: 520px;
+      top: 310px;
+      width: 400px;
+      height: 440px;
+      background: rgba(0,0,0,0.6);
+      border: 2px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      overflow: hidden;
+    }
+    
+    .center-window canvas, .center-window img {
+      max-width: 100%;
+      max-height: 100%;
+      mix-blend-mode: color-dodge;
     }
 
-    .action-btn:hover {
-      background-color: #10b981;
-      color: #08090a;
-      border-color: #10b981;
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    /* Меню сканирования */
+    .scan-menu {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      z-index: 25;
     }
+    .scan-menu.active { display: flex; }
+    .scan-btn {
+      padding: 15px 40px;
+      background: transparent;
+      color: white;
+      border: 1px solid white;
+      font-size: 18px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .scan-btn:hover { background: white; color: black; }
 
-    .action-btn:disabled {
-      opacity: 0.3;
+    /* Поля ввода */
+    .input-area {
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #0f0;
+      font-family: monospace;
+      font-size: 16px;
+      outline: none;
+    }
+    textarea { height: 60px; resize: none; }
+    input:focus, textarea:focus { border-color: #0f0; }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .blinking { animation: blink 1s infinite; }
+
+    /* Замки */
+    .locks-container {
+      position: absolute;
+      top: 400px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 100px;
+      z-index: 15;
       pointer-events: none;
     }
+    .lock-box {
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(255,255,255,0.5);
+      text-align: center;
+      width: 150px;
+    }
+
+    /* Оверлей ошибки */
+    .spy-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: red;
+      text-align: center;
+    }
+    .spy-overlay.active { display: flex; }
+    .spy-img { font-size: 120px; margin-bottom: 20px; filter: grayscale(100%); }
+    .spy-text { font-size: 32px; line-height: 1.4; font-weight: bold; text-transform: uppercase; }
+    .spy-subtext { font-size: 24px; color: white; margin-top: 10px; }
+
+    .hidden-input { display: none; }
   </style>
 </head>
-<body class="flex items-center justify-center min-h-screen bg-[#030405] p-2 md:p-6 select-none overflow-hidden">
+<body>
 
-  <!-- Fixed 16:9 Aspect Ratio Frame Container -->
-  <div 
-    id="artifact" 
-    class="relative w-full aspect-[16/9] max-w-[1200px] bg-[#08090a] text-[#c2c5c8] shadow-[0_0_60px_rgba(16,185,129,0.15)] overflow-hidden rounded-2xl border-[12px] border-[#1a1c1e] transition-all duration-500"
-  >
-    <!-- Immersive UI dotted grid pattern overlay -->
-    <div class="absolute inset-0 opacity-10 pointer-events-none z-0" style="background-image: radial-gradient(#10b981 1px, transparent 1px); background-size: 20px 20px;"></div>
+  <div class="app-wrapper" id="app">
+    <!-- Невидимые зоны ховера -->
+    <div class="zone zone-create" id="btn-create"></div>
+    <div class="zone zone-scan" id="btn-scan"></div>
+    <div class="zone zone-rules"></div>
+    <div class="zone zone-back"></div>
+    <div class="zone zone-save" id="btn-save"></div>
 
-    <!-- Runic Calibration alignment rings fallback graphics -->
-    <div class="absolute inset-0 opacity-[0.05] pointer-events-none -z-10 flex items-center justify-center">
-      <svg class="w-[85%] h-[85%] text-[#10b981]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="0.15">
-        <circle cx="50" cy="50" r="46" stroke-dasharray="3 3" />
-        <circle cx="50" cy="50" r="38" />
-        <circle cx="50" cy="50" r="28" />
-        <path d="M 50 0 L 50 100 M 0 50 L 100 50 M 15 15 L 85 85 M 15 85 L 85 15" />
-        <polygon points="50,4 96,50 50,96 4,50" stroke-width="0.08" />
-        <polygon points="50,12 88,50 50,88 12,50" stroke-width="0.08" />
-      </svg>
+    <!-- Замки -->
+    <div class="locks-container">
+      <div class="lock-box" id="lock-left">OPEN<br><span style="font-size:14px; color:#ccc;">ВІДКРИТО</span></div>
+      <div class="lock-box" id="lock-right">OPEN<br><span style="font-size:14px; color:#ccc;">ВІДКРИТО</span></div>
     </div>
 
-    <!-- Header Terminal Title -->
-    <div class="absolute top-[4.5%] left-[15%] w-[70%] text-center pointer-events-none select-none z-10">
-      <div class="text-[0.6vw] md:text-[0.7vw] uppercase tracking-[0.3em] text-[#10b981] font-bold mb-1 animate-pulse">
-        System Status: Monitoring
-      </div>
-      <h1 class="text-[2.2vw] font-light tracking-[0.2em] text-white uppercase font-display leading-tight">
-        КРИПТО-СНІГ QR <span class="text-[#10b981] opacity-50 font-mono text-[1.4vw] ml-1">v4.02</span>
-      </h1>
-      <p class="text-[0.7vw] text-[#10b981]/60 font-mono tracking-[0.35em] uppercase mt-1">
-        ANCIENT ORNAMENT CRYPTO DECODER // SECURE TERMINAL
-      </p>
-    </div>
-
-    <!-- Operator Auth stamp right -->
-    <div class="absolute top-[4.5%] right-[3%] text-right pointer-events-none select-none z-10">
-      <div class="text-[0.5vw] uppercase tracking-[0.2em] opacity-40">Operator Auth</div>
-      <div class="text-[0.8vw] font-mono text-[#10b981]/80">DPT-993-XLS</div>
-    </div>
-
-    <!-- Left Lock Block (Sector Alpha) -->
-    <div id="lock-left" class="absolute left-[30%] top-[70%] w-[10%] h-[22%] pointer-events-none flex flex-col items-center justify-center bg-[#0c0e10]/80 border border-[#10b981]/20 rounded-xl p-2 z-10 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all duration-500">
-      <!-- Icon Container -->
-      <div id="lock-left-icon-container">
-        <!-- Will be updated dynamically via JS -->
-      </div>
-      <span id="lock-left-label" class="text-[0.6vw] text-[#10b981]/80 mt-1 font-mono tracking-widest uppercase font-bold">SECTOR_ALPHA</span>
-    </div>
-
-    <!-- Right Lock Block (Sector Beta) -->
-    <div id="lock-right" class="absolute left-[60%] top-[70%] w-[10%] h-[22%] pointer-events-none flex flex-col items-center justify-center bg-[#0c0e10]/80 border border-[#10b981]/20 rounded-xl p-2 z-10 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all duration-500">
-      <!-- Icon Container -->
-      <div id="lock-right-icon-container">
-        <!-- Will be updated dynamically via JS -->
-      </div>
-      <span id="lock-right-label" class="text-[0.6vw] text-[#10b981]/80 mt-1 font-mono tracking-widest uppercase font-bold">SECTOR_BETA</span>
-    </div>
-
-    <!-- --- DYNAMIC SECRET TEXT FIELD (#ui-text) --- -->
-    <div 
-      class="absolute transition-all duration-500 border border-[#10b981]/25 bg-[#0c0e10]/85 rounded-lg p-1 shadow-[0_0_15px_rgba(16,185,129,0.05)] focus-within:border-[#10b981]/60 focus-within:shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-      style="left: 26.5%; top: 23.5%; width: 47.2%; height: 6.5%; z-index: 5;"
-    >
-      <textarea 
-        id="ui-text"
-        placeholder="Введіть текст таємниці / Enter secret payload..."
-        class="w-full h-full bg-transparent border-none text-[#10b981] placeholder-[#10b981]/30 font-mono resize-none outline-none text-[1.1vw] leading-[1.3] px-4 py-1 transition-all duration-500"
-      ></textarea>
+    <!-- Центральное окно -->
+    <div class="center-window" id="center-window">
+      <canvas id="seal-canvas" width="400" height="400" style="display:none;"></canvas>
+      <img id="preview-img" src="" alt="" style="display:none;">
       
-      <!-- Overlay lock notification when pending key input -->
-      <div id="lock-overlay" class="hidden absolute inset-0 flex items-center justify-center bg-black/75 backdrop-blur-[1px] rounded border border-red-950/30 pointer-events-none">
-        <span class="text-red-500 text-[0.8vw] font-mono tracking-[0.2em] uppercase flex items-center gap-2">
-          <!-- ShieldAlert SVG -->
-          <svg class="w-4 h-4 animate-pulse" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2A1 1 0 0 1 20 6z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
-          AWAITING CRYPTOGRAPHIC KEY VERIFICATION
-        </span>
-      </div>
-
-      <!-- Success Decrypted Indicator -->
-      <div id="decrypted-indicator" class="hidden absolute bottom-1 right-2 pointer-events-none">
-        <span class="text-[#10b981] text-[0.6vw] font-mono tracking-widest uppercase flex items-center gap-1">
-          <!-- Check SVG -->
-          <svg class="w-3 h-3 animate-ping" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          PAYLOAD DECRYPTED
-        </span>
+      <div class="scan-menu" id="scan-menu">
+        <button class="scan-btn" id="btn-camera">CAMERA</button>
+        <button class="scan-btn" id="btn-gallery">GALLERY</button>
       </div>
     </div>
 
-    <!-- --- CENTRAL DECORATIVE ORNAMENT BOX (#ui-qr-wrapper) --- -->
-    <div 
-      id="ui-qr-wrapper"
-      class="absolute flex items-center justify-center pointer-events-auto overflow-hidden transition-all duration-500 rounded-xl z-40 border border-[#10b981]/20 bg-[#0c0e10] shadow-[0_0_60px_rgba(0,0,0,0.85)]"
-      style="left: 39.1%; top: 35.3%; width: 22.1%; height: 40.6%;"
-    >
-      <!-- Corner Highlights -->
-      <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#10b981] pointer-events-none z-50"></div>
-      <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#10b981] pointer-events-none z-50"></div>
-      <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#10b981] pointer-events-none z-50"></div>
-      <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#10b981] pointer-events-none z-50"></div>
-
-      <!-- Standby Runic Seal Vector backdrop -->
-      <div id="standby-seal" class="absolute inset-0 flex flex-col items-center justify-center text-center p-3 select-none pointer-events-none">
-        <div class="w-[60%] h-[60%] border border-[#10b981]/20 rounded-full flex items-center justify-center opacity-30 animate-spin" style="animation-duration: 30s;">
-          <svg class="w-full h-full text-[#10b981]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M12 2v20M2 12h20" stroke-width="0.5" />
-            <circle cx="12" cy="12" r="10" stroke-width="0.5" stroke-dasharray="2 2" />
-          </svg>
-        </div>
-        <p class="absolute text-[0.7vw] text-[#10b981]/40 tracking-[0.2em] font-mono leading-tight uppercase">
-          STANDBY SEAL
-        </p>
-      </div>
-
-      <!-- Live Video Scan Overlay -->
-      <div id="scanner-view" class="hidden absolute inset-0 w-full h-full flex-col justify-between p-3 select-none bg-black/90">
-        <!-- Target corners -->
-        <div class="absolute inset-3 pointer-events-none z-30 flex flex-col justify-between">
-          <div class="flex justify-between">
-            <div class="w-4 h-4 border-t-2 border-l-2 border-[#10b981] rounded-tl-sm animate-pulse"></div>
-            <div class="w-4 h-4 border-t-2 border-r-2 border-[#10b981] rounded-tr-sm animate-pulse"></div>
-          </div>
-          <div class="flex justify-between">
-            <div class="w-4 h-4 border-b-2 border-l-2 border-[#10b981] rounded-bl-sm animate-pulse"></div>
-            <div class="w-4 h-4 border-b-2 border-r-2 border-[#10b981] rounded-br-sm animate-pulse"></div>
-          </div>
-        </div>
-
-        <video id="scan-video" class="w-full h-full object-cover rounded" playsinline></video>
-        <div id="scan-laser" class="absolute left-0 w-full h-[3px] bg-[#10b981] opacity-80 shadow-[0_0_12px_#10b981] scan-line-anim z-20 pointer-events-none"></div>
-        
-        <!-- Choose File Manual Backup Button inside scan view -->
-        <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-2 bg-black/70 z-20">
-          <div id="camera-error-view" class="hidden flex-col items-center justify-center">
-            <svg class="w-8 h-8 text-[#10b981]/90 mb-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>
-            <p class="text-[0.8vw] text-emerald-200/90 leading-tight">Камера недоступна у фреймі.</p>
-            <p class="text-[0.6vw] text-zinc-400 mt-1">Перетягніть файл сюди або виберіть вручну.</p>
-          </div>
-          
-          <button type="button" id="btn-manual-upload" class="mt-2 px-3 py-1.5 bg-[#10b981]/15 hover:bg-[#10b981]/30 text-[#10b981] text-[0.7vw] font-bold border border-[#10b981]/40 rounded-md transition-all cursor-pointer shadow-[0_0_10px_rgba(16,185,129,0.15)]">
-            ВИБРАТИ ФАЙЛ
-          </button>
-        </div>
-      </div>
-
-      <!-- Generated Cyber-Ornament Canvas -->
-      <canvas id="seal-canvas" width="512" height="512" class="w-full h-full object-contain transition-all duration-500"></canvas>
+    <!-- Поля ввода -->
+    <div class="input-area">
+      <textarea id="text-input" placeholder="Текст таємниці / Secret payload..."></textarea>
+      <input type="password" id="key-input" placeholder="КЛЮЧ / PASSWORD" maxlength="12">
     </div>
 
-    <!-- --- DYNAMIC PASS KEY FIELD (#ui-pass) --- -->
-    <div 
-      class="absolute flex items-center justify-center border-b border-[#10b981]/30 hover:border-[#10b981]/60 focus-within:border-[#10b981] transition-all bg-[#0c0e10]/40 rounded px-2"
-      style="left: 35%; top: 82%; width: 30%; height: 5.5%; z-index: 15;"
-    >
-      <input 
-        type="password" 
-        id="ui-pass" 
-        placeholder="КЛЮЧ / PASSWORD" 
-        maxlength="12"
-        class="w-full h-full bg-transparent border-none text-[#10b981] text-center text-[1.6vw] tracking-[0.3em] font-mono outline-none placeholder-emerald-950/40 px-2 transition-all duration-300"
-      />
-      
-      <!-- Subtle inline submit/decode button -->
-      <button 
-        id="btn-inline-decrypt" 
-        class="hidden absolute right-2 px-2.5 py-1 bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40 rounded text-[0.7vw] font-bold tracking-widest hover:bg-[#10b981]/35 transition-all"
-      >
-        ВВЕСТИ
-      </button>
-    </div>
+    <!-- Скрытые элементы -->
+    <input type="file" id="file-input" accept="image/*" class="hidden-input">
+    <video id="camera-video" style="display:none;" playsinline></video>
 
-    <!-- Hidden native file input -->
-    <input type="file" id="file-input-hidden" accept="image/*" class="hidden" />
-
-    <!-- --- ACTION TERMINAL BUTTONS --- -->
-    <!-- Save QR Button -->
-    <button id="btn-save" class="hidden absolute bottom-[3%] left-[3%] action-btn">
-      [+] ЗБЕРЕГТИ
-    </button>
-
-    <!-- Reset / Clear Button -->
-    <button id="btn-reset" class="hidden absolute bottom-[3%] left-[3%] action-btn text-emerald-500 border-emerald-950/40 hover:bg-emerald-950/10 hover:shadow-emerald-950/20">
-      [↺] СТИРАТИ
-    </button>
-
-    <!-- Scan Toggle Button -->
-    <button id="btn-scan" class="absolute bottom-[3%] right-[3%] action-btn">
-      [👁] СКАНУВАТИ
-    </button>
-  </div>
-
-  <!-- --- DETECTIVE INTRUDER OVERLAY (#spy-overlay) --- -->
-  <div 
-    id="spy-overlay" 
-    class="hidden fixed inset-0 bg-black/95 backdrop-blur-md z-[200] flex flex-col items-center justify-center p-4 transition-all duration-300"
-  >
-    <div class="p-8 md:p-10 rounded-2xl text-center max-w-sm w-full bg-[#08090a] border border-[#10b981]/30 shadow-[0_0_50px_rgba(16,185,129,0.15)]">
-      <div class="text-7xl mb-2 select-none animate-bounce">🕵️‍♂️</div>
-      <div class="flex justify-center text-4xl mb-4 select-none animate-pulse">👀</div>
-      
-      <h2 class="text-2xl font-bold text-red-500 mb-2 font-mono tracking-widest uppercase">
-        АГЕНТ, СТОП!
-      </h2>
-      
-      <p class="text-[#c2c5c8] mb-6 text-sm font-sans">
-        Ці дані зашифровані. Назовіть секретне слово.
-      </p>
-
-      <input 
-        type="password" 
-        id="spy-pass" 
-        placeholder="••••••" 
-        class="w-full p-3 rounded-xl bg-black/80 text-[#10b981] text-center text-xl tracking-[0.2em] mb-4 border border-[#10b981]/20 outline-none font-mono focus:border-[#10b981]"
-      />
-
-      <!-- Dynamic Error Status (#spy-error) -->
-      <div class="h-8 flex items-center justify-center mb-2">
-        <p id="spy-error" class="hidden text-red-500 text-sm font-bold font-sans tracking-wide">
-          ДЕРЖАВА НЕ ДОВІРЯЄ ВАМ
-        </p>
-      </div>
-
-      <!-- Unlock and Cancel Actions -->
-      <div class="flex flex-col gap-2 mt-2">
-        <button id="btn-spy-decrypt" class="w-full py-3 bg-[#10b981]/15 hover:bg-[#10b981]/30 text-[#10b981] border border-[#10b981]/40 rounded-xl text-xs font-bold font-sans tracking-widest transition-all cursor-pointer">
-          РОЗБЛОКУВАТИ
-        </button>
-        
-        <button id="btn-spy-cancel" class="text-zinc-500 hover:text-zinc-300 text-xs underline font-sans cursor-pointer mt-2">
-          Відміна
-        </button>
-      </div>
+    <!-- Оверлей шпиона -->
+    <div class="spy-overlay" id="spy-overlay">
+      <div class="spy-img">🕵️‍♂️</div>
+      <div class="spy-text">Держава не доверяет вам</div>
+      <div class="spy-subtext">The State does not trust you</div>
+      <div style="margin-top:40px; color:white; cursor:pointer; font-size:20px;" id="spy-close">[ НАЖМИТЕ, ЧТОБЫ ЗАКРЫТЬ ]</div>
     </div>
   </div>
 
-  <!-- White scanned flash layer -->
-  <div id="flash-layer" class="fixed inset-0 bg-white pointer-events-none z-[300] transition-opacity duration-300 opacity-0"></div>
-
-  <!-- JavaScript Cryptography & Terminal Logic -->
   <script>
-    // --- APP STATE VARIABLES ---
-    let mode = 'idle'; // 'idle' | 'scanning' | 'decrypt_pending' | 'decrypted'
-    let text = '';
-    let password = '';
+    // --- МАСШТАБИРОВАНИЕ ПОД ЭКРАН ---
+    function scaleApp() {
+      const app = document.getElementById('app');
+      const scaleX = window.innerWidth / 1440;
+      const scaleY = window.innerHeight / 900;
+      const scale = Math.min(scaleX, scaleY);
+      app.style.transform = `scale(${scale})`;
+    }
+    window.addEventListener('resize', scaleApp);
+    scaleApp();
+
+    // --- СОСТОЯНИЕ ---
     let pendingCiphertext = null;
-    
-    // Lock animations mapping
-    let lockStates = {
-      leftGlow: false,
-      leftClosed: false,
-      rightGlow: false,
-      rightClosed: false
-    };
+    let currentStream = null;
 
-    let leftTimeout = null;
-    let rightTimeout = null;
-    let videoStream = null;
-    let scanFrameId = null;
+    // --- DOM ЭЛЕМЕНТЫ ---
+    const textInput = document.getElementById('text-input');
+    const keyInput = document.getElementById('key-input');
+    const sealCanvas = document.getElementById('seal-canvas');
+    const previewImg = document.getElementById('preview-img');
+    const scanMenu = document.getElementById('scan-menu');
+    const fileInput = document.getElementById('file-input');
+    const lockLeft = document.getElementById('lock-left');
+    const lockRight = document.getElementById('lock-right');
+    const spyOverlay = document.getElementById('spy-overlay');
 
-    // DOM Elements Cache
-    const elArtifact = document.getElementById('artifact');
-    const elTextarea = document.getElementById('ui-text');
-    const elPassInput = document.getElementById('ui-pass');
-    const elInlineDecrypt = document.getElementById('btn-inline-decrypt');
-    const elBtnSave = document.getElementById('btn-save');
-    const elBtnReset = document.getElementById('btn-reset');
-    const elBtnScan = document.getElementById('btn-scan');
-    const elStandbySeal = document.getElementById('standby-seal');
-    const elScannerView = document.getElementById('scanner-view');
-    const elScanVideo = document.getElementById('scan-video');
-    const elCameraErrorView = document.getElementById('camera-error-view');
-    const elBtnManualUpload = document.getElementById('btn-manual-upload');
-    const elFileInputHidden = document.getElementById('file-input-hidden');
-    const elSealCanvas = document.getElementById('seal-canvas');
-    const elLockOverlay = document.getElementById('lock-overlay');
-    const elDecryptedIndicator = document.getElementById('decrypted-indicator');
-    
-    // Lock graphic icons
-    const elLockLeftIcon = document.getElementById('lock-left-icon-container');
-    const elLockRightIcon = document.getElementById('lock-right-icon-container');
-    const elLockLeftBlock = document.getElementById('lock-left');
-    const elLockRightBlock = document.getElementById('lock-right');
-    const elLockLeftLabel = document.getElementById('lock-left-label');
-    const elLockRightLabel = document.getElementById('lock-right-label');
-
-    // Spy modal DOM elements
-    const elSpyOverlay = document.getElementById('spy-overlay');
-    const elSpyPass = document.getElementById('spy-pass');
-    const elSpyError = document.getElementById('spy-error');
-    const elBtnSpyDecrypt = document.getElementById('btn-spy-decrypt');
-    const elBtnSpyCancel = document.getElementById('btn-spy-cancel');
-    const elFlashLayer = document.getElementById('flash-layer');
-
-    // SVGs for locks
-    const SVG_LOCKED = `<svg class="w-8 h-8 text-[#10b981] drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>`;
-    const SVG_UNLOCKED = `<svg class="w-8 h-8 text-[#10b981]/80 animate-pulse drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h16.5a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 12v8.25a1.5 1.5 0 0 0 1.5 1.5z" /></svg>`;
-    const SVG_GLOWING_LOCKED = `<svg class="w-8 h-8 text-yellow-500 drop-shadow-[0_0_12px_rgba(234,179,8,0.7)] animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>`;
-
-    // --- AUDIO SYSTEM ---
-    function playBeep(freq = 880, duration = 0.15) {
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = freq;
-        osc.type = "sine";
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
-        osc.start();
-        osc.stop(ctx.currentTime + duration);
-      } catch (e) {
-        console.warn("Audio Context is blocked or unsupported.");
-      }
-    }
-
-    function playSuccessSound() {
-      playBeep(880, 0.1);
-      setTimeout(() => playBeep(1200, 0.18), 100);
-    }
-
-    function playFailureSound() {
-      playBeep(220, 0.4);
-      setTimeout(() => playBeep(180, 0.4), 150);
-    }
-
-    function triggerScreenFlash() {
-      elFlashLayer.classList.remove('opacity-0');
-      elFlashLayer.classList.add('opacity-100');
-      setTimeout(() => {
-        elFlashLayer.classList.remove('opacity-100');
-        elFlashLayer.classList.add('opacity-0');
-      }, 400);
-    }
-
-    // --- MATHEMATICAL CYBER-ORNAMENT MATRIX PATTERNS ---
-    const PATTERNS = [
-      [[0,1,0,1,0,1,0],[1,0,0,0,0,0,1],[0,0,1,1,1,0,0],[1,0,1,1,1,0,1],[0,0,1,1,1,0,0],[1,0,0,0,0,0,1],[0,1,0,1,0,1,0]],
-      [[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0]],
-      [[1,1,1,1,1,1,1],[0,0,0,0,0,0,1],[1,1,1,1,1,0,1],[1,0,0,0,1,0,1],[1,0,1,1,1,0,1],[1,0,0,0,0,0,1],[1,1,1,1,1,1,1]],
-      [[1,1,1,1,1,1,1],[1,0,0,0,0,0,0],[1,0,1,1,1,1,1],[1,0,1,0,0,0,1],[1,0,1,1,1,0,1],[1,0,0,0,0,0,1],[1,1,1,1,1,1,1]],
-      [[1,1,1,1,1,1,1],[1,0,0,0,0,0,1],[1,0,1,1,1,0,1],[1,0,1,0,1,0,1],[1,0,1,0,0,0,1],[1,0,1,1,1,1,1],[1,0,0,0,0,0,0]],
-      [[0,0,0,0,0,1,1],[0,0,0,0,1,1,0],[0,0,0,1,1,0,0],[1,1,1,1,1,1,1],[0,0,0,1,1,0,0],[0,0,0,0,1,1,0],[0,0,0,0,0,1,1]],
-      [[1,1,1,1,1,0,0],[1,0,0,0,0,0,0],[1,0,0,0,0,0,0],[1,1,1,1,1,1,1],[0,0,0,0,0,0,1],[0,0,0,0,0,0,1],[0,0,1,1,1,1,1]],
-      [[0,0,0,0,1,1,1],[0,0,0,1,1,1,0],[0,0,1,1,1,0,0],[0,1,1,1,0,0,0],[1,1,1,0,0,0,0],[1,1,0,0,0,0,0],[1,0,0,0,0,0,0]],
-      [[1,1,0,0,0,1,1],[1,1,0,0,0,1,1],[0,0,1,0,1,0,0],[0,0,0,1,0,0,0],[0,0,1,0,1,0,0],[1,1,0,0,0,1,1],[1,1,0,0,0,1,1]],
-      [[0,0,0,1,0,0,0],[0,0,1,1,1,0,0],[0,1,1,1,1,1,0],[1,1,1,1,1,1,1],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0]],
-      [[1,1,1,1,1,1,0],[1,0,0,0,0,1,0],[1,0,1,1,1,1,0],[1,0,1,0,0,0,0],[1,0,1,1,1,1,1],[1,0,0,0,0,0,0],[1,1,1,1,1,1,1]],
-      [[0,0,0,0,0,0,1],[0,0,0,0,0,1,1],[0,0,0,0,1,1,0],[0,0,0,1,1,0,0],[0,0,1,1,0,0,0],[0,1,1,0,0,0,0],[1,1,0,0,0,0,0]],
-      [[0,0,0,1,0,0,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[1,0,0,0,0,0,1],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,0,0,1,0,0,0]],
-      [[1,0,0,0,0,0,1],[0,1,0,0,0,1,0],[0,0,1,0,1,0,0],[0,0,0,1,0,0,0],[0,0,1,0,1,0,0],[0,1,0,0,0,1,0],[1,0,0,0,0,0,1]],
-      [[0,0,1,1,1,0,0],[0,0,1,1,1,0,0],[1,1,0,1,0,1,1],[1,1,1,0,1,1,1],[1,1,0,1,0,1,1],[0,0,1,1,1,0,0],[0,0,1,1,1,0,0]],
-      [[0,0,1,0,1,0,0],[0,1,0,0,0,1,0],[1,0,0,0,0,0,1],[0,0,0,0,0,0,0],[1,0,0,0,0,0,1],[0,1,0,0,0,1,0],[0,0,1,0,1,0,0]],
-      [[0,1,1,0,1,1,0],[1,0,1,0,1,0,1],[1,1,0,0,0,1,1],[0,0,0,1,0,0,0],[1,1,0,0,0,1,1],[1,0,1,0,1,0,1],[0,1,1,0,1,1,0]],
-      [[0,1,0,1,0,1,0],[1,1,0,1,0,1,1],[0,0,0,1,0,0,0],[1,1,1,1,1,1,1],[0,0,0,1,0,0,0],[1,1,0,1,0,1,1],[0,1,0,1,0,1,0]],
-      [[1,1,1,1,1,1,1],[0,1,1,1,1,1,1],[0,0,1,1,1,1,1],[0,0,0,1,1,1,1],[0,0,0,0,1,1,1],[0,0,0,0,0,1,1],[0,0,0,0,0,0,1]],
-      [[0,0,0,0,0,0,0],[1,0,0,0,0,0,0],[1,1,0,0,0,0,0],[1,1,1,0,0,0,0],[1,1,1,1,0,0,0],[1,1,1,1,1,0,0],[1,1,1,1,1,1,0]]
-    ];
-
-    const solidBlock = Array.from({ length: 7 }, () => Array(7).fill(1));
-    const FILLER_IDX = [0, 8, 13, 16, 17];
-
-    function generateMask(size, palId) {
-      if (size % 2 === 0) size += 1;
-      let matrix = Array(size).fill(null).map(() => Array(size).fill(0));
-      let centerY = Math.floor(size / 2);
-      let centerX = Math.floor(size / 2);
-      let maxBlock = Math.ceil(centerY / 7) + 1;
-      let blockMap = {};
-
-      for (let by = 0; by < maxBlock; by++) {
-        for (let bx = by; bx < maxBlock; bx++) {
-          let pat = PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
-          if (JSON.stringify(pat) === JSON.stringify(solidBlock)) {
-            pat = PATTERNS[FILLER_IDX[Math.floor(Math.random() * FILLER_IDX.length)]];
-          }
-          blockMap[`${bx},${by}`] = pat;
-        }
-      }
-
-      for (let y = 0; y <= centerY; y++) {
-        for (let x = y; x <= centerX; x++) {
-          let bx = Math.floor(x / 7);
-          let by = Math.floor(y / 7);
-          let key = `${bx},${by}`;
-          if (!blockMap[key]) key = `${by},${bx}`;
-          let pat = blockMap[key];
-          if (!pat) continue;
-
-          if (pat[y % 7][x % 7] === 1) {
-            let value = 1;
-            matrix[centerY + y][centerX + x] = value;
-            matrix[centerY + x][centerX + y] = value;
-            matrix[centerY - y][centerX + x] = value;
-            matrix[centerY - x][centerX + y] = value;
-            matrix[centerY + y][centerX - x] = value;
-            matrix[centerY + x][centerX - y] = value;
-            matrix[centerY - y][centerX - x] = value;
-            matrix[centerY - x][centerX - y] = value;
-          }
-        }
-      }
-      return matrix;
-    }
-
-    // --- STANDALONE BRADLEY BINARIZER & SPECTRAL ADVANTAGE DECODERS ---
-    function applyBradley(img, ch) {
-      const w = img.width;
-      const h = img.height;
-      const d = img.data;
-      const o = new Uint8ClampedArray(w * h * 4);
-      const ii = new Int32Array(w * h);
-      const s = Math.floor(w / 8);
-      const t = 15;
-
-      for (let y = 0; y < h; y++) {
-        let sum = 0;
-        for (let x = 0; x < w; x++) {
-          sum += d[(y * w + x) * 4 + ch];
-          ii[y * w + x] = (y > 0 ? ii[(y - 1) * w + x] : 0) + sum;
-        }
-      }
-
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          let x1 = Math.max(x - s, 0);
-          let x2 = Math.min(x + s, w - 1);
-          let y1 = Math.max(y - s, 0);
-          let y2 = Math.min(y + s, h - 1);
-          let c = (x2 - x1) * (y2 - y1);
-          let sum = ii[y2 * w + x2] - ii[y1 * w + x2] - ii[y2 * w + x1] + ii[y1 * w + x1];
-          let v = d[(y * w + x) * 4 + ch];
-          let r = (v * c < sum * (100 - t) / 100) ? 0 : 255;
-          let i = (y * w + x) * 4;
-          o[i] = o[i + 1] = o[i + 2] = r;
-          o[i + 3] = 255;
-        }
-      }
-      return new ImageData(o, w, h);
-    }
-
-    function applySCI(img, cfg) {
-      const d = img.data;
-      for (let i = 0; i < d.length; i += 4) {
-        let r = d[i], g = d[i + 1], b = d[i + 2];
-        let res = (b - (r * cfg.k1 + g * cfg.k2)) * 1.5;
-        res = Math.max(0, Math.min(255, res));
-        d[i] = res;
-        d[i + 1] = res;
-        d[i + 2] = res;
-        d[i + 3] = 255;
-      }
-    }
-
-
-
-    
-   // --- SECURE CRYPTOGRAPHY API (PBKDF2 + AES-GCM) ---
+    // --- КРИПТОГРАФИЯ (PBKDF2 + AES-GCM) ---
     async function encryptData(plaintext, passwordKey) {
       const enc = new TextEncoder();
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const km = await crypto.subtle.importKey("raw", enc.encode(passwordKey), "PBKDF2", false, ["deriveKey"]);
       const key = await crypto.subtle.deriveKey(
         { name: "PBKDF2", salt, iterations: 390000, hash: "SHA-256" },
-        km,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt"]
+        km, { name: "AES-GCM", length: 256 }, false, ["encrypt"]
       );
       const nonce = crypto.getRandomValues(new Uint8Array(12));
       const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, enc.encode(plaintext));
-      const comb = new Uint8Array(28 + ct.byteLength);
+      const comb = new Uint8Array(40 + ct.byteLength);
       comb.set(salt, 0);
       comb.set(nonce, 16);
       comb.set(new Uint8Array(ct), 28);
       
       let binary = '';
-      const len = comb.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(comb[i]);
-      }
+      for (let i = 0; i < comb.byteLength; i++) binary += String.fromCharCode(comb[i]);
       return btoa(binary);
     }
 
@@ -581,560 +261,257 @@
       try {
         const enc = new TextEncoder();
         const binaryString = atob(b64);
-        const len = binaryString.length;
-        const comb = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          comb[i] = binaryString.charCodeAt(i);
-        }
+        const comb = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) comb[i] = binaryString.charCodeAt(i);
+        
         const salt = comb.slice(0, 16);
         const nonce = comb.slice(16, 28);
         const ct = comb.slice(28);
+        
         const km = await crypto.subtle.importKey("raw", enc.encode(passwordKey), "PBKDF2", false, ["deriveKey"]);
         const key = await crypto.subtle.deriveKey(
           { name: "PBKDF2", salt, iterations: 390000, hash: "SHA-256" },
-          km,
-          { name: "AES-GCM", length: 256 },
-          false,
-          ["decrypt"]
+          km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
         );
         const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, ct);
         return new TextDecoder().decode(dec);
       } catch (e) {
-        return null;
+        return null; // Ошибка расшифровки (неверный ключ)
       }
     }
-    
-    // --- CANVAS DRAW RENDERING (CYBER ORNAMENT QR SEAL) ---
-    function drawCanvas(dataString) {
-      const ctx = elSealCanvas.getContext('2d');
-      if (!ctx) return;
 
-      ctx.fillStyle = "#110e0b";
-      ctx.fillRect(0, 0, 512, 512);
+    // --- ГЕНЕРАЦИЯ ОРНАМЕНТА (Упрощенная матрица) ---
+    function drawOrnament(dataString) {
+      const ctx = sealCanvas.getContext('2d');
+      if (!ctx || !dataString) return;
 
-      if (!dataString.trim()) {
-        elSealCanvas.style.opacity = "0";
-        return;
-      }
-
-      elSealCanvas.style.opacity = "1";
+      ctx.clearRect(0, 0, 400, 400);
+      ctx.fillStyle = "rgb(20, 20, 20)";
+      ctx.fillRect(0, 0, 400, 400);
 
       try {
         const utf8 = unescape(encodeURIComponent(dataString));
-        const qrObj = qrcode(0, 'M');
-        qrObj.addData(utf8);
-        qrObj.make();
-        let mc = qrObj.getModuleCount();
-        
-        let qz = 2, fi = 1, fo = 2;
-        let ornSize = mc + (qz * 2);
-        if (ornSize % 2 === 0) ornSize += 1;
-        let total = ornSize + (fi * 2) + (fo * 2);
-        if (total % 2 === 0) total += 1;
+        const qr = qrcode(0, 'M');
+        qr.addData(utf8);
+        qr.make();
+        const mc = qr.getModuleCount();
+        const cellSize = Math.floor(380 / mc);
+        const offset = Math.floor((400 - cellSize * mc) / 2);
 
-        const mod = 512 / total;
-        
-        // Draw stone base plate
-        ctx.fillStyle = "rgb(180, 160, 140)"; // Bronze-Stone hue
-        ctx.fillRect(0, 0, 512, 512);
-        ctx.fillStyle = "rgb(25, 20, 15)"; // Core background cavity
-        ctx.fillRect(fo * mod, fo * mod, 512 - (fo * mod * 2), 512 - (fo * mod * 2));
-
-        const maskR = generateMask(ornSize, 0);
-        const maskG = generateMask(ornSize, 1);
-        const coreStart = fo + fi + qz;
-
-        for (let r = 0; r < total; r++) {
-          for (let c = 0; c < total; c++) {
-            let isO = (r < fo || r >= total - fo || c < fo || c >= total - fo);
-            let isI = !isO && (r < fo + fi || r >= total - (fo + fi) || c < fo + fi || c >= total - (fo + fi));
-            if (isO || isI) continue;
-
-            let oR = r - (fo + fi);
-            let oC = c - (fo + fi);
-            let qrR = r - coreStart;
-            let qrC = c - coreStart;
-            let isC = (qrR >= 0 && qrR < mc && qrC >= 0 && qrC < mc);
-
-            let vR = maskR[oR] && maskR[oR][oC] ? 210 : 35;
-            let vG = maskG[oR] && maskG[oR][oC] ? 210 : 35;
-            let vB = 35;
-            if (isC) vB = qrObj.isDark(qrR, qrC) ? 210 : 35;
-
-            ctx.fillStyle = `rgb(${vR}, ${vG}, ${vB})`;
-            ctx.fillRect(c * mod, r * mod, mod + 0.4, mod + 0.4);
+        for (let r = 0; r < mc; r++) {
+          for (let c = 0; c < mc; c++) {
+            if (qr.isDark(r, c)) {
+              // Генерируем псевдо-орнаментальные цвета на основе позиции
+              const isPattern = (r + c) % 3 === 0 || r % 5 === 0;
+              ctx.fillStyle = isPattern ? "rgb(200, 180, 140)" : "rgb(255, 255, 255)";
+              ctx.fillRect(offset + c * cellSize, offset + r * cellSize, cellSize, cellSize);
+            }
           }
         }
+        previewImg.style.display = 'none';
+        sealCanvas.style.display = 'block';
       } catch (e) {
-        console.error("Canvas seal draw failed: ", e);
+        console.error("QR generation failed", e);
       }
     }
 
-    // --- UI REACTIVE RENDERING ENGINE ---
-    function updateUI() {
-      // 1. Text Field Updates
-      if (mode === 'decrypt_pending') {
-        elTextarea.value = "";
-        elTextarea.disabled = true;
-        elTextarea.classList.add('blur-[3px]', 'select-none', 'opacity-40');
-        elLockOverlay.classList.remove('hidden');
-        elDecryptedIndicator.classList.add('hidden');
-      } else if (mode === 'decrypted') {
-        elTextarea.value = text;
-        elTextarea.disabled = true;
-        elTextarea.classList.remove('blur-[3px]', 'select-none', 'opacity-40');
-        elLockOverlay.classList.add('hidden');
-        elDecryptedIndicator.classList.remove('hidden');
-      } else {
-        elTextarea.value = text;
-        elTextarea.disabled = false;
-        elTextarea.classList.remove('blur-[3px]', 'select-none', 'opacity-40');
-        elLockOverlay.classList.add('hidden');
-        elDecryptedIndicator.classList.add('hidden');
-      }
-
-      // 2. Center Panel View Toggle
-      if (mode === 'scanning') {
-        elStandbySeal.classList.add('hidden');
-        elSealCanvas.classList.add('hidden');
-        elScannerView.classList.remove('hidden');
-        elBtnScan.textContent = "✖ СКАСУВАТИ";
-        elBtnScan.classList.add('text-red-500', 'border-red-950/40', 'hover:bg-red-950/10');
-      } else {
-        elScannerView.classList.add('hidden');
-        elBtnScan.textContent = "[👁] СКАНУВАТИ";
-        elBtnScan.classList.remove('text-red-500', 'border-red-950/40', 'hover:bg-red-950/10');
-        
-        if (text || pendingCiphertext) {
-          elStandbySeal.classList.add('hidden');
-          elSealCanvas.classList.remove('hidden');
-        } else {
-          elStandbySeal.classList.remove('hidden');
-          elSealCanvas.classList.add('hidden');
-        }
-      }
-
-      // 3. Command Terminal Action Buttons
-      if (mode === 'idle' && text.trim().length > 0) {
-        elBtnSave.classList.remove('hidden');
-        elBtnReset.classList.add('hidden');
-      } else if (mode === 'decrypt_pending' || mode === 'decrypted') {
-        elBtnSave.classList.add('hidden');
-        elBtnReset.classList.remove('hidden');
-      } else {
-        elBtnSave.classList.add('hidden');
-        elBtnReset.classList.add('hidden');
-      }
-
-      // 4. Lock Overlay Graphic sync
-      elLockLeftIcon.innerHTML = lockStates.leftClosed ? SVG_LOCKED : (lockStates.leftGlow ? SVG_GLOWING_LOCKED : SVG_UNLOCKED);
-      elLockRightIcon.innerHTML = lockStates.rightClosed ? SVG_LOCKED : (lockStates.rightGlow ? SVG_GLOWING_LOCKED : SVG_UNLOCKED);
-
-      if (lockStates.leftClosed) {
-        elLockLeftBlock.classList.add('bg-[#110e0b]', 'border-red-900/40', 'shadow-inner');
-        elLockLeftBlock.classList.remove('border-[#10b981]/20');
-        elLockLeftLabel.textContent = "LOCKED (A)";
-        elLockLeftLabel.classList.add('text-red-500/90');
-        elLockLeftLabel.classList.remove('text-[#10b981]/80');
-      } else {
-        elLockLeftBlock.classList.remove('bg-[#110e0b]', 'border-red-900/40', 'shadow-inner');
-        elLockLeftBlock.classList.add('border-[#10b981]/20');
-        elLockLeftLabel.textContent = "OPEN (ALPHA)";
-        elLockLeftLabel.classList.remove('text-red-500/90');
-        elLockLeftLabel.classList.add('text-[#10b981]/80');
-      }
-
-      if (lockStates.rightClosed) {
-        elLockRightBlock.classList.add('bg-[#110e0b]', 'border-red-900/40', 'shadow-inner');
-        elLockRightBlock.classList.remove('border-[#10b981]/20');
-        elLockRightLabel.textContent = "LOCKED (B)";
-        elLockRightLabel.classList.add('text-red-500/90');
-        elLockRightLabel.classList.remove('text-[#10b981]/80');
-      } else {
-        elLockRightBlock.classList.remove('bg-[#110e0b]', 'border-red-900/40', 'shadow-inner');
-        elLockRightBlock.classList.add('border-[#10b981]/20');
-        elLockRightLabel.textContent = "OPEN (BETA)";
-        elLockRightLabel.classList.remove('text-red-500/90');
-        elLockRightLabel.classList.add('text-[#10b981]/80');
-      }
-
-      // 5. Interactive inline password decode button show
-      if (mode === 'decrypt_pending' && password.trim().length > 0) {
-        elInlineDecrypt.classList.remove('hidden');
-      } else {
-        elInlineDecrypt.classList.add('hidden');
-      }
-
-      // 6. Sync input value
-      elPassInput.value = password;
-      elPassInput.disabled = (mode === 'decrypted');
-    }
-
-    // --- MECHANICAL PASS LOCK CORRELATION ENGINE ---
-    function syncLockStates() {
-      if (mode === 'decrypt_pending') {
-        lockStates = { leftGlow: false, leftClosed: true, rightGlow: false, rightClosed: true };
-        updateUI();
-        return;
-      }
-      if (mode === 'decrypted') {
-        lockStates = { leftGlow: false, leftClosed: false, rightGlow: false, rightClosed: false };
-        updateUI();
-        return;
-      }
-
-      const len = password.trim().length;
-      if (leftTimeout) clearTimeout(leftTimeout);
-      if (rightTimeout) clearTimeout(rightTimeout);
-
-      let next = { leftGlow: false, leftClosed: false, rightGlow: false, rightClosed: false };
-
-      if (len === 0) {
-        lockStates = next;
-        updateUI();
-        return;
-      }
-
-      if (len >= 1 && len <= 3) {
-        next.leftGlow = true;
-      }
-      if (len >= 3) {
-        leftTimeout = setTimeout(() => {
-          lockStates.leftGlow = false;
-          lockStates.leftClosed = true;
-          updateUI();
-        }, 300);
-      }
-
-      if (len >= 4 && len <= 6) {
-        next.rightGlow = true;
-      }
-      if (len >= 6) {
-        rightTimeout = setTimeout(() => {
-          lockStates.rightGlow = false;
-          lockStates.rightClosed = true;
-          updateUI();
-        }, 300);
-      }
-
-      lockStates.leftClosed = len >= 3 ? lockStates.leftClosed : false;
-      lockStates.rightClosed = len >= 6 ? lockStates.rightClosed : false;
-      lockStates.leftGlow = next.leftGlow;
-      lockStates.rightGlow = next.rightGlow;
-      updateUI();
-    }
-
-    // --- WEBCAM STREAM CONTROLLER & HARDWARE SCANNER ---
-    function stopWebcam() {
-      if (scanFrameId) {
-        cancelAnimationFrame(scanFrameId);
-        scanFrameId = null;
-      }
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-        videoStream = null;
-      }
-      elScanVideo.srcObject = null;
-    }
-
-    function startWebcam() {
-      elCameraErrorView.classList.add('hidden');
+    // --- ЛОГИКА ЗАМКОВ ---
+    function updateLocks() {
+      const len = keyInput.value.trim().length;
       
-      const offscreenCanvas = document.createElement('canvas');
-      offscreenCanvas.width = 512;
-      offscreenCanvas.height = 512;
-      const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+      if (len >= 3) {
+        lockLeft.innerHTML = "CLOSED<br><span style='font-size:14px; color:#ccc;'>ЗАКРИТО</span>";
+      } else {
+        lockLeft.innerHTML = "OPEN<br><span style='font-size:14px; color:#ccc;'>ВІДКРИТО</span>";
+      }
 
-      let failCount = 0;
-      let activeSearch = false;
+      if (len >= 6) {
+        lockRight.innerHTML = "CLOSED<br><span style='font-size:14px; color:#ccc;'>ЗАКРИТО</span>";
+      } else {
+        lockRight.innerHTML = "OPEN<br><span style='font-size:14px; color:#ccc;'>ВІДКРИТО</span>";
+      }
+    }
 
-      function frameLoop() {
-        if (mode !== 'scanning') return;
-        
-        if (elScanVideo.readyState === elScanVideo.HAVE_ENOUGH_DATA && offscreenCtx) {
-          offscreenCtx.drawImage(elScanVideo, 0, 0, 512, 512);
-          const imgData = offscreenCtx.getImageData(0, 0, 512, 512);
+    // --- ОБРАБОТКА QR ИЗ КАРТИНКИ ---
+    function processQRfromImage(imageElement) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = imageElement.naturalWidth || imageElement.width;
+      tempCanvas.height = imageElement.naturalHeight || imageElement.height;
+      const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(imageElement, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
 
-          let detected = false;
-          let qrCodeData = '';
+      if (code && code.data) {
+        const trimmed = code.data.trim();
+        if (trimmed.endsWith('=')) {
+          // Это шифр
+          pendingCiphertext = trimmed;
+          textInput.value = "";
+          keyInput.value = "";
+          keyInput.classList.add('blinking');
+          keyInput.focus();
+          updateLocks();
+        } else {
+          // Обычный текст
+          textInput.value = trimmed;
+          pendingCiphertext = null;
+          keyInput.classList.remove('blinking');
+        }
+      } else {
+        alert("QR-код не распознан на изображении.");
+      }
+    }
 
-          // Regular scan
-          const code = jsQR(imgData.data, 512, 512, { inversionAttempts: "attemptBoth" });
-          if (code) {
-            qrCodeData = code.data;
-            detected = true;
-          } else {
-            failCount++;
-            if (failCount > 40) {
-              activeSearch = true;
-            }
+    // --- СОБЫТИЯ КНОПОК ИНТЕРФЕЙСА ---
+    
+    // Кнопка CREATE (Генерация)
+    document.getElementById('btn-create').addEventListener('click', () => {
+      const text = textInput.value.trim();
+      const pass = keyInput.value.trim();
+      
+      if (!text) return;
 
-            if (activeSearch) {
-              const cfg = { k1: 0.05, k2: 0.13 };
-              const wImg = new ImageData(new Uint8ClampedArray(imgData.data), 512, 512);
-              applySCI(wImg, cfg);
-              const mImg = applyBradley(wImg, 0);
-              const codeAlt = jsQR(mImg.data, 512, 512, { inversionAttempts: "attemptBoth" });
-              if (codeAlt) {
-                qrCodeData = codeAlt.data;
-                detected = true;
-                failCount = 0;
-              }
-            } else {
-              const mImg = applyBradley(imgData, 2);
-              const codeAlt = jsQR(mImg.data, 512, 512, { inversionAttempts: "attemptBoth" });
-              if (codeAlt) {
-                qrCodeData = codeAlt.data;
-                detected = true;
-                failCount = 0;
-              }
-            }
-          }
+      if (pass) {
+        encryptData(text, pass).then(cipher => {
+          drawOrnament(cipher);
+        });
+      } else {
+        drawOrnament(text);
+      }
+    });
 
-          if (detected && qrCodeData) {
-            playBeep(880, 0.12);
-            triggerScreenFlash();
-            stopWebcam();
+    // Кнопка SCAN
+    document.getElementById('btn-scan').addEventListener('click', () => {
+      scanMenu.classList.toggle('active');
+    });
 
-            const trimmed = qrCodeData.trim();
+    // Кнопка CAMERA
+    document.getElementById('btn-camera').addEventListener('click', async () => {
+      scanMenu.classList.remove('active');
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const video = document.getElementById('camera-video');
+        video.srcObject = currentStream;
+        video.style.display = 'block';
+        video.play();
+
+        // Быстрый захват кадра (для демо)
+        setTimeout(() => {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = video.videoWidth;
+          tempCanvas.height = video.videoHeight;
+          const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(video, 0, 0);
+          
+          const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+          
+          stopCamera();
+
+          if (code && code.data) {
+            const trimmed = code.data.trim();
             if (trimmed.endsWith('=')) {
               pendingCiphertext = trimmed;
-              mode = 'decrypt_pending';
-              password = '';
-              syncLockStates();
+              textInput.value = "";
+              keyInput.value = "";
+              keyInput.classList.add('blinking');
+              keyInput.focus();
+              updateLocks();
             } else {
-              text = trimmed;
-              password = '';
-              mode = 'idle';
-              syncLockStates();
+              textInput.value = trimmed;
             }
-            updateUI();
-            drawCanvas(pendingCiphertext || text);
-            return;
+          } else {
+            alert("Не удалось считать QR с камеры.");
           }
-        }
-        scanFrameId = requestAnimationFrame(frameLoop);
-      }
+        }, 2000); // Ждем 2 секунды для наведения
 
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 } } })
-        .then(stream => {
-          videoStream = stream;
-          elScanVideo.srcObject = stream;
-          elScanVideo.play().then(() => {
-            scanFrameId = requestAnimationFrame(frameLoop);
-          }).catch(err => {
-            console.error("Webcam playback failed:", err);
-            elCameraErrorView.classList.remove('hidden');
-          });
-        })
-        .catch(err => {
-          console.warn("Webcam access denied or unsupported.", err);
-          elCameraErrorView.classList.remove('hidden');
-        });
+      } catch (err) {
+        alert("Доступ к камере запрещен или камера не найдена.");
+        scanMenu.classList.add('active');
+      }
+    });
+
+    function stopCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+        currentStream = null;
+      }
+      document.getElementById('camera-video').style.display = 'none';
     }
 
-    // --- FILE UPLOADER DECODER FLOW ---
-    function handleFileUpload(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = 512;
-          tempCanvas.height = 512;
-          const tempCtx = tempCanvas.getContext('2d');
-          if (tempCtx) {
-            tempCtx.drawImage(img, 0, 0, 512, 512);
-            const imgData = tempCtx.getImageData(0, 0, 512, 512);
-            
-            let code = jsQR(imgData.data, 512, 512, { inversionAttempts: "attemptBoth" });
-            if (!code) {
-              const mImg = applyBradley(imgData, 2);
-              code = jsQR(mImg.data, 512, 512, { inversionAttempts: "attemptBoth" });
-            }
+    // Кнопка GALLERY
+    document.getElementById('btn-gallery').addEventListener('click', () => {
+      scanMenu.classList.remove('active');
+      fileInput.click();
+    });
 
-            if (code && code.data) {
-              playBeep(880, 0.12);
-              triggerScreenFlash();
-              const trimmed = code.data.trim();
-              if (trimmed.endsWith('=')) {
-                pendingCiphertext = trimmed;
-                mode = 'decrypt_pending';
-                password = '';
-                syncLockStates();
-              } else {
-                text = trimmed;
-                password = '';
-                mode = 'idle';
-                syncLockStates();
-              }
-              updateUI();
-              drawCanvas(pendingCiphertext || text);
-            } else {
-              // Trigger shake and detective modal
-              triggerIntruderAlert();
-            }
-          }
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        previewImg.src = ev.target.result;
+        previewImg.onload = () => {
+          sealCanvas.style.display = 'none';
+          previewImg.style.display = 'block';
+          processQRfromImage(previewImg);
         };
-        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
-    }
-
-    // --- DETECTIVE INTRUDER SHAKE & ERROR HANDLING ---
-    function triggerIntruderAlert() {
-      playFailureSound();
-      elArtifact.classList.add('shake-anim');
-      setTimeout(() => {
-        elArtifact.classList.remove('shake-anim');
-      }, 500);
-
-      // Open Intruder Modal
-      elSpyOverlay.classList.remove('hidden');
-      elSpyPass.value = "";
-      elSpyError.classList.add('hidden');
-      elSpyPass.focus();
-    }
-
-    // --- DECRYPTION ATTEMPT TRIGGER ---
-    async function handleDecryptAttempt() {
-      const activePass = elSpyOverlay.classList.contains('hidden') ? password : elSpyPass.value;
-      if (!activePass) return;
-
-      if (mode === 'decrypt_pending' && pendingCiphertext) {
-        const result = await decryptData(pendingCiphertext, activePass);
-        if (result !== null) {
-          text = result;
-          password = activePass;
-          mode = 'decrypted';
-          
-          playSuccessSound();
-          elSpyOverlay.classList.add('hidden');
-          syncLockStates();
-          drawCanvas(pendingCiphertext);
-        } else {
-          // Play buzzer, shake and show error inside modal
-          playFailureSound();
-          elArtifact.classList.add('shake-anim');
-          setTimeout(() => elArtifact.classList.remove('shake-anim'), 500);
-          
-          elSpyError.classList.remove('hidden');
-          elSpyOverlay.classList.remove('hidden');
-        }
-      }
-    }
-
-    // --- EVENT LISTENERS REGISTRATION ---
-    elTextarea.addEventListener('input', async (e) => {
-      if (mode === 'idle') {
-        text = e.target.value;
-        const pass = password.trim();
-        if (pass && text.trim()) {
-          const cipher = await encryptData(text, pass);
-          drawCanvas(cipher);
-        } else {
-          drawCanvas(text);
-        }
-        updateUI();
-      }
+      fileInput.value = ''; // Сброс для повторного выбора того же файла
     });
 
-    elPassInput.addEventListener('input', async (e) => {
-      if (mode !== 'decrypted') {
-        password = e.target.value;
-        syncLockStates();
-
-        const pass = password.trim();
-        if (mode === 'idle') {
-          if (pass && text.trim()) {
-            const cipher = await encryptData(text, pass);
-            drawCanvas(cipher);
-          } else {
-            drawCanvas(text);
-          }
-        }
-      }
-    });
-
-    elPassInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        handleDecryptAttempt();
-      }
-    });
-
-    elInlineDecrypt.addEventListener('click', handleDecryptAttempt);
-
-    elBtnSave.addEventListener('click', () => {
+    // Кнопка SAVE
+    document.getElementById('btn-save').addEventListener('click', () => {
       const link = document.createElement('a');
-      link.download = `ornament-seal-${Date.now()}.png`;
-      link.href = elSealCanvas.toDataURL('image/png');
+      link.download = 'crypto-ornament.png';
+      
+      if (sealCanvas.style.display !== 'none') {
+        link.href = sealCanvas.toDataURL('image/png');
+      } else if (previewImg.src) {
+        link.href = previewImg.src;
+      } else {
+        return;
+      }
       link.click();
     });
 
-    elBtnReset.addEventListener('click', () => {
-      text = '';
-      password = '';
-      pendingCiphertext = null;
-      mode = 'idle';
-      syncLockStates();
-      drawCanvas('');
-    });
+    // --- ЛОГИКА ВВОДА КЛЮЧЕЙ И РАСШИФРОВКИ ---
+    keyInput.addEventListener('input', updateLocks);
 
-    elBtnScan.addEventListener('click', () => {
-      if (mode === 'scanning') {
-        mode = 'idle';
-        stopWebcam();
-        updateUI();
-        drawCanvas(pendingCiphertext || text);
-      } else {
-        mode = 'scanning';
-        updateUI();
-        startWebcam();
-      }
-    });
-
-    elBtnManualUpload.addEventListener('click', () => {
-      elFileInputHidden.click();
-    });
-
-    elFileInputHidden.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) handleFileUpload(file);
-    });
-
-    // Drag and Drop files anywhere on container
-    elArtifact.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      elArtifact.classList.add('border-[#10b981]/80', 'ring-2', 'ring-[#10b981]/25');
-    });
-
-    elArtifact.addEventListener('dragleave', () => {
-      elArtifact.classList.remove('border-[#10b981]/80', 'ring-2', 'ring-[#10b981]/25');
-    });
-
-    elArtifact.addEventListener('drop', (e) => {
-      e.preventDefault();
-      elArtifact.classList.remove('border-[#10b981]/80', 'ring-2', 'ring-[#10b981]/25');
-      const file = e.dataTransfer.files[0];
-      if (file) handleFileUpload(file);
-    });
-
-    // Spy/Detective Overlay controls
-    elSpyPass.addEventListener('keydown', (e) => {
+    keyInput.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter') {
-        handleDecryptAttempt();
+        keyInput.classList.remove('blinking');
+        
+        if (pendingCiphertext) {
+          const activePass = keyInput.value.trim(); // ИСПРАВЛЕНО: добавлен .trim()
+          if (!activePass) return;
+
+          const result = await decryptData(pendingCiphertext, activePass);
+          
+          if (result !== null) {
+            textInput.value = result;
+            pendingCiphertext = null;
+          } else {
+            // НЕВЕРНЫЙ КЛЮЧ -> ОВЕРЛЕЙ ШПИОНА
+            spyOverlay.classList.add('active');
+          }
+        }
       }
     });
 
-    elBtnSpyDecrypt.addEventListener('click', handleDecryptAttempt);
-
-    elBtnSpyCancel.addEventListener('click', () => {
-      elSpyOverlay.classList.add('hidden');
+    // Закрытие оверлея шпиона
+    document.getElementById('spy-close').addEventListener('click', () => {
+      spyOverlay.classList.remove('active');
+      keyInput.value = "";
+      keyInput.classList.add('blinking');
+      keyInput.focus();
+      updateLocks();
     });
 
-    // Initial load state
-    syncLockStates();
-    drawCanvas('');
   </script>
 </body>
 </html>
