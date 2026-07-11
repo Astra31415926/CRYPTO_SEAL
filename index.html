@@ -1,517 +1,213 @@
-<!doctype html>
-<html lang="uk">
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Крипто-Сніг Terminal</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background-color: #000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    /* Основной контейнер под размер макета из PS */
-    .app-wrapper {
-      width: 1440px;
-      height: 900px;
-      position: relative;
-      background: url('004.jpg') no-repeat center center;
-      background-size: cover;
-      transform-origin: center center;
-      overflow: hidden;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Seal Interface</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-    /* Невидимые интерактивные зоны с подсветкой */
-    .zone {
-      position: absolute;
-      background: url('003.jpg') no-repeat;
-      background-size: 1440px 900px;
-      opacity: 0;
-      transition: opacity 0.15s ease-in-out;
-      cursor: pointer;
-      z-index: 10;
-    }
-    .zone:hover { opacity: 1; }
+        body {
+            background: #0d0d0d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
 
-    .zone-create { left: 306px; top: 227px; width: 283px; height: 54px; background-position: -306px -227px; }
-    .zone-scan { left: 1105px; top: 225px; width: 283px; height: 54px; background-position: -1105px -225px; }
-    .zone-rules { left: 707px; top: 834px; width: 269px; height: 57px; background-position: -707px -834px; }
-    .zone-back { left: 610px; top: 827px; width: 79px; height: 56px; background-position: -610px -827px; }
-    .zone-save { left: 999px; top: 826px; width: 60px; height: 68px; background-position: -999px -826px; }
+        /* Главный контейнер по размерам твоего монитора/макета */
+        .interface-container {
+            position: relative;
+            width: 1920px;
+            height: 1080px;
+            background: url('004.jpg') no-repeat center center;
+            background-size: contain;
+            user-select: none;
+        }
 
-    /* Центральное окно */
-    .center-window {
-      position: absolute;
-      left: 520px;
-      top: 310px;
-      width: 400px;
-      height: 440px;
-      background: rgba(0,0,0,0.6);
-      border: 2px solid rgba(255,255,255,0.1);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 20;
-      overflow: hidden;
-    }
-    
-    .center-window canvas, .center-window img {
-      max-width: 100%;
-      max-height: 100%;
-      mix-blend-mode: color-dodge;
-    }
+        /* Общие интерактивные зоны для проявления белых надписей из 003.jpg */
+        .hover-zone {
+            position: absolute;
+            cursor: pointer;
+        }
+        .hover-zone:hover {
+            background-image: url('003.jpg');
+            background-repeat: no-repeat;
+        }
 
-    /* Меню сканирования */
-    .scan-menu {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      z-index: 25;
-    }
-    .scan-menu.active { display: flex; }
-    .scan-btn {
-      padding: 15px 40px;
-      background: transparent;
-      color: white;
-      border: 1px solid white;
-      font-size: 18px;
-      letter-spacing: 2px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .scan-btn:hover { background: white; color: black; }
+        /* Координаты зон по твоим замерам */
+        .zone-create { left: 306px; top: 227px; width: 283px; height: 54px; }
+        .zone-create:hover { background-position: -306px -227px; }
 
-    /* Поля ввода */
-    .input-area {
-      position: absolute;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 600px;
-      z-index: 30;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 12px;
-      background: rgba(0,0,0,0.7);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: #0f0;
-      font-family: monospace;
-      font-size: 16px;
-      outline: none;
-    }
-    textarea { height: 60px; resize: none; }
-    input:focus, textarea:focus { border-color: #0f0; }
+        .zone-scan { left: 1105px; top: 225px; width: 283px; height: 54px; }
+        .zone-scan:hover { background-position: -1105px -225px; }
 
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    .blinking { animation: blink 1s infinite; }
+        .zone-rules { left: 707px; top: 834px; width: 269px; height: 57px; }
+        .zone-rules:hover { background-position: -707px -834px; }
 
-    /* Замки */
-    .locks-container {
-      position: absolute;
-      top: 400px;
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 100px;
-      z-index: 15;
-      pointer-events: none;
-    }
-    .lock-box {
-      color: white;
-      font-size: 20px;
-      font-weight: bold;
-      text-shadow: 0 0 10px rgba(255,255,255,0.5);
-      text-align: center;
-      width: 150px;
-    }
+        .zone-back { left: 610px; top: 827px; width: 79px; height: 56px; }
+        .zone-back:hover { background-position: -610px -827px; }
 
-    /* Оверлей ошибки */
-    .spy-overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.95);
-      z-index: 100;
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: red;
-      text-align: center;
-    }
-    .spy-overlay.active { display: flex; }
-    .spy-img { font-size: 120px; margin-bottom: 20px; filter: grayscale(100%); }
-    .spy-text { font-size: 32px; line-height: 1.4; font-weight: bold; text-transform: uppercase; }
-    .spy-subtext { font-size: 24px; color: white; margin-top: 10px; }
+        .zone-save { left: 999px; top: 826px; width: 60px; height: 68px; }
+        .zone-save:hover { background-position: -999px -826px; }
 
-    .hidden-input { display: none; }
-  </style>
+        /* Текстовые замки */
+        .lock-text {
+            position: absolute;
+            font-weight: bold;
+            font-size: 14px;
+            color: #4af626; /* Зеленоватый программный цвет, можно заменить на любой */
+            text-shadow: 0 0 5px rgba(74, 246, 38, 0.5);
+            text-transform: uppercase;
+        }
+        #lock-left { left: 395px; top: 585px; }   /* Подгони координаты под свои замки */
+        #lock-right { left: 1195px; top: 585px; }
+
+        /* Центральное окно и генерация орнамента */
+        .center-window {
+            position: absolute;
+            left: 651px; top: 250px; width: 440px; height: 440px; /* Примерные размеры центра */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .center-window img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            mix-blend-mode: color-dodge; /* Режим: Яркий свет */
+        }
+
+        /* Всплывающие кнопки SCAN */
+        .scan-menu {
+            display: none;
+            position: absolute;
+            gap: 20px;
+        }
+        .scan-btn {
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid #fff;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        /* Поля ввода */
+        .input-field {
+            position: absolute;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+        }
+        #input-text { left: 511px; top: 739px; width: 500px; height: 60px; resize: none; }
+        #input-key { left: 679px; top: 667px; width: 200px; height: 30px; }
+
+        /* Оверлей ошибки (Чудик-шпион) */
+        .spy-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ff3333;
+            font-size: 24px;
+            text-align: center;
+        }
+        .spy-overlay img {
+            max-width: 300px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="app-wrapper" id="app">
-    <!-- Невидимые зоны ховера -->
-    <div class="zone zone-create" id="btn-create"></div>
-    <div class="zone zone-scan" id="btn-scan"></div>
-    <div class="zone zone-rules"></div>
-    <div class="zone zone-back"></div>
-    <div class="zone zone-save" id="btn-save"></div>
+<div class="interface-container">
+    <div class="hover-zone zone-create" id="action-create"></div>
+    <div class="hover-zone zone-scan" id="action-scan"></div>
+    <div class="hover-zone zone-rules" id="action-rules"></div>
+    <div class="hover-zone zone-back" id="action-back"></div>
+    <div class="hover-zone zone-save" id="action-save"></div>
 
-    <!-- Замки -->
-    <div class="locks-container">
-      <div class="lock-box" id="lock-left">OPEN<br><span style="font-size:14px; color:#ccc;">ВІДКРИТО</span></div>
-      <div class="lock-box" id="lock-right">OPEN<br><span style="font-size:14px; color:#ccc;">ВІДКРИТО</span></div>
+    <div class="lock-text" id="lock-left">OPEN</div>
+    <div class="lock-text" id="lock-right">OPEN</div>
+
+    <div class="center-window" id="window-display">
+        <div class="scan-menu" id="scan-menu">
+            <button class="scan-btn" id="choice-camera">CAMERA</button>
+            <button class="scan-btn" id="choice-gallery">GALLERY</button>
+        </div>
+        <img id="ornament-view" src="" style="display:none;">
     </div>
 
-    <!-- Центральное окно -->
-    <div class="center-window" id="center-window">
-      <canvas id="seal-canvas" width="400" height="400" style="display:none;"></canvas>
-      <img id="preview-img" src="" alt="" style="display:none;">
-      
-      <div class="scan-menu" id="scan-menu">
-        <button class="scan-btn" id="btn-camera">CAMERA</button>
-        <button class="scan-btn" id="btn-gallery">GALLERY</button>
-      </div>
+    <textarea class="input-field" id="input-text" placeholder="Текст тайницы..."></textarea>
+    <input type="text" class="input-field" id="input-key" placeholder="Ключ...">
+
+    <div class="spy-overlay" id="spy-screen">
+        <img src="spy.png" alt="Spy"> <div id="error-message">Держава не доверяет вам / The State does not trust you</div>
     </div>
+</div>
 
-    <!-- Поля ввода -->
-    <div class="input-area">
-      <textarea id="text-input" placeholder="Текст таємниці / Secret payload..."></textarea>
-      <input type="password" id="key-input" placeholder="КЛЮЧ / PASSWORD" maxlength="12">
-    </div>
-
-    <!-- Скрытые элементы -->
-    <input type="file" id="file-input" accept="image/*" class="hidden-input">
-    <video id="camera-video" style="display:none;" playsinline></video>
-
-    <!-- Оверлей шпиона -->
-    <div class="spy-overlay" id="spy-overlay">
-      <div class="spy-img">🕵️‍♂️</div>
-      <div class="spy-text">Держава не доверяет вам</div>
-      <div class="spy-subtext">The State does not trust you</div>
-      <div style="margin-top:40px; color:white; cursor:pointer; font-size:20px;" id="spy-close">[ НАЖМИТЕ, ЧТОБЫ ЗАКРЫТЬ ]</div>
-    </div>
-  </div>
-
-  <script>
-    // --- МАСШТАБИРОВАНИЕ ПОД ЭКРАН ---
-    function scaleApp() {
-      const app = document.getElementById('app');
-      const scaleX = window.innerWidth / 1440;
-      const scaleY = window.innerHeight / 900;
-      const scale = Math.min(scaleX, scaleY);
-      app.style.transform = `scale(${scale})`;
-    }
-    window.addEventListener('resize', scaleApp);
-    scaleApp();
-
-    // --- СОСТОЯНИЕ ---
-    let pendingCiphertext = null;
-    let currentStream = null;
-
-    // --- DOM ЭЛЕМЕНТЫ ---
-    const textInput = document.getElementById('text-input');
-    const keyInput = document.getElementById('key-input');
-    const sealCanvas = document.getElementById('seal-canvas');
-    const previewImg = document.getElementById('preview-img');
-    const scanMenu = document.getElementById('scan-menu');
-    const fileInput = document.getElementById('file-input');
+<script>
+    const inputText = document.getElementById('input-text');
+    const inputKey = document.getElementById('input-key');
     const lockLeft = document.getElementById('lock-left');
     const lockRight = document.getElementById('lock-right');
-    const spyOverlay = document.getElementById('spy-overlay');
+    const actionScan = document.getElementById('action-scan');
+    const scanMenu = document.getElementById('scan-menu');
+    const choiceGallery = document.getElementById('choice-gallery');
+    const ornamentView = document.getElementById('ornament-view');
+    const spyScreen = document.getElementById('spy-screen');
 
-    // --- КРИПТОГРАФИЯ (PBKDF2 + AES-GCM) ---
-    async function encryptData(plaintext, passwordKey) {
-      const enc = new TextEncoder();
-      const salt = crypto.getRandomValues(new Uint8Array(16));
-      const km = await crypto.subtle.importKey("raw", enc.encode(passwordKey), "PBKDF2", false, ["deriveKey"]);
-      const key = await crypto.subtle.deriveKey(
-        { name: "PBKDF2", salt, iterations: 390000, hash: "SHA-256" },
-        km, { name: "AES-GCM", length: 256 }, false, ["encrypt"]
-      );
-      const nonce = crypto.getRandomValues(new Uint8Array(12));
-      const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, enc.encode(plaintext));
-      const comb = new Uint8Array(40 + ct.byteLength);
-      comb.set(salt, 0);
-      comb.set(nonce, 16);
-      comb.set(new Uint8Array(ct), 28);
-      
-      let binary = '';
-      for (let i = 0; i < comb.byteLength; i++) binary += String.fromCharCode(comb[i]);
-      return btoa(binary);
-    }
+    // Логика замков (ввод текста закрывает их)
+    inputText.addEventListener('input', () => {
+        lockLeft.textContent = inputText.value.length >= 3 ? "CLOSED" : "OPEN";
+    });
 
-    async function decryptData(b64, passwordKey) {
-      try {
-        const enc = new TextEncoder();
-        const binaryString = atob(b64);
-        const comb = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) comb[i] = binaryString.charCodeAt(i);
+    inputKey.addEventListener('input', () => {
+        lockRight.textContent = inputKey.value.length >= 6 ? "CLOSED" : "OPEN";
         
-        const salt = comb.slice(0, 16);
-        const nonce = comb.slice(16, 28);
-        const ct = comb.slice(28);
-        
-        const km = await crypto.subtle.importKey("raw", enc.encode(passwordKey), "PBKDF2", false, ["deriveKey"]);
-        const key = await crypto.subtle.deriveKey(
-          { name: "PBKDF2", salt, iterations: 390000, hash: "SHA-256" },
-          km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
-        );
-        const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, ct);
-        return new TextDecoder().decode(dec);
-      } catch (e) {
-        return null; // Ошибка расшифровки (неверный ключ)
-      }
-    }
-
-    // --- ГЕНЕРАЦИЯ ОРНАМЕНТА (Упрощенная матрица) ---
-    function drawOrnament(dataString) {
-      const ctx = sealCanvas.getContext('2d');
-      if (!ctx || !dataString) return;
-
-      ctx.clearRect(0, 0, 400, 400);
-      ctx.fillStyle = "rgb(20, 20, 20)";
-      ctx.fillRect(0, 0, 400, 400);
-
-      try {
-        const utf8 = unescape(encodeURIComponent(dataString));
-        const qr = qrcode(0, 'M');
-        qr.addData(utf8);
-        qr.make();
-        const mc = qr.getModuleCount();
-        const cellSize = Math.floor(380 / mc);
-        const offset = Math.floor((400 - cellSize * mc) / 2);
-
-        for (let r = 0; r < mc; r++) {
-          for (let c = 0; c < mc; c++) {
-            if (qr.isDark(r, c)) {
-              // Генерируем псевдо-орнаментальные цвета на основе позиции
-              const isPattern = (r + c) % 3 === 0 || r % 5 === 0;
-              ctx.fillStyle = isPattern ? "rgb(200, 180, 140)" : "rgb(255, 255, 255)";
-              ctx.fillRect(offset + c * cellSize, offset + r * cellSize, cellSize, cellSize);
-            }
-          }
+        // Пример триггера проверки ключа (если ввели неправильный, допустим 'wrong')
+        if(inputKey.value === 'wrong') {
+            spyScreen.style.display = 'flex';
+            setTimeout(() => { spyScreen.style.display = 'none'; inputKey.value = ''; }, 3000);
         }
-        previewImg.style.display = 'none';
-        sealCanvas.style.display = 'block';
-      } catch (e) {
-        console.error("QR generation failed", e);
-      }
-    }
+    });
 
-    // --- ЛОГИКА ЗАМКОВ ---
-    function updateLocks() {
-      const len = keyInput.value.trim().length;
-      
-      if (len >= 3) {
-        lockLeft.innerHTML = "CLOSED<br><span style='font-size:14px; color:#ccc;'>ЗАКРИТО</span>";
-      } else {
-        lockLeft.innerHTML = "OPEN<br><span style='font-size:14px; color:#ccc;'>ВІДКРИТО</span>";
-      }
+    // Нажатие на SCAN показывает подменю
+    actionScan.addEventListener('click', () => {
+        scanMenu.style.display = 'flex';
+        ornamentView.style.display = 'none';
+    });
 
-      if (len >= 6) {
-        lockRight.innerHTML = "CLOSED<br><span style='font-size:14px; color:#ccc;'>ЗАКРИТО</span>";
-      } else {
-        lockRight.innerHTML = "OPEN<br><span style='font-size:14px; color:#ccc;'>ВІДКРИТО</span>";
-      }
-    }
+    // Выбор ГАЛЕРЕИ
+    choiceGallery.addEventListener('click', () => {
+        scanMenu.style.display = 'none';
+        
+        // Симулируем загрузку картинки с кодом (в реале тут будет твой обработчик файла)
+        // Допустим, считанный текст попал в переменную textFromImage
+        let textFromImage = "Пример текста="; 
 
-    // --- ОБРАБОТКА QR ИЗ КАРТИНКИ ---
-    function processQRfromImage(imageElement) {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = imageElement.naturalWidth || imageElement.width;
-      tempCanvas.height = imageElement.naturalHeight || imageElement.height;
-      const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(imageElement, 0, 0);
-      
-      const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+        ornamentView.src = "ornament.jpg"; // Тут будет сгенерированная картинка
+        ornamentView.style.display = 'block';
 
-      if (code && code.data) {
-        const trimmed = code.data.trim();
-        if (trimmed.endsWith('=')) {
-          // Это шифр
-          pendingCiphertext = trimmed;
-          textInput.value = "";
-          keyInput.value = "";
-          keyInput.classList.add('blinking');
-          keyInput.focus();
-          updateLocks();
+        if(textFromImage.endsWith('=')) {
+            inputKey.focus(); // Мерцает курсор в поле ключа
         } else {
-          // Обычный текст
-          textInput.value = trimmed;
-          pendingCiphertext = null;
-          keyInput.classList.remove('blinking');
+            inputText.value = textFromImage;
         }
-      } else {
-        alert("QR-код не распознан на изображении.");
-      }
-    }
-
-    // --- СОБЫТИЯ КНОПОК ИНТЕРФЕЙСА ---
-    
-    // Кнопка CREATE (Генерация)
-    document.getElementById('btn-create').addEventListener('click', () => {
-      const text = textInput.value.trim();
-      const pass = keyInput.value.trim();
-      
-      if (!text) return;
-
-      if (pass) {
-        encryptData(text, pass).then(cipher => {
-          drawOrnament(cipher);
-        });
-      } else {
-        drawOrnament(text);
-      }
     });
+</script>
 
-    // Кнопка SCAN
-    document.getElementById('btn-scan').addEventListener('click', () => {
-      scanMenu.classList.toggle('active');
-    });
-
-    // Кнопка CAMERA
-    document.getElementById('btn-camera').addEventListener('click', async () => {
-      scanMenu.classList.remove('active');
-      try {
-        currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        const video = document.getElementById('camera-video');
-        video.srcObject = currentStream;
-        video.style.display = 'block';
-        video.play();
-
-        // Быстрый захват кадра (для демо)
-        setTimeout(() => {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = video.videoWidth;
-          tempCanvas.height = video.videoHeight;
-          const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
-          ctx.drawImage(video, 0, 0);
-          
-          const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height);
-          
-          stopCamera();
-
-          if (code && code.data) {
-            const trimmed = code.data.trim();
-            if (trimmed.endsWith('=')) {
-              pendingCiphertext = trimmed;
-              textInput.value = "";
-              keyInput.value = "";
-              keyInput.classList.add('blinking');
-              keyInput.focus();
-              updateLocks();
-            } else {
-              textInput.value = trimmed;
-            }
-          } else {
-            alert("Не удалось считать QR с камеры.");
-          }
-        }, 2000); // Ждем 2 секунды для наведения
-
-      } catch (err) {
-        alert("Доступ к камере запрещен или камера не найдена.");
-        scanMenu.classList.add('active');
-      }
-    });
-
-    function stopCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(t => t.stop());
-        currentStream = null;
-      }
-      document.getElementById('camera-video').style.display = 'none';
-    }
-
-    // Кнопка GALLERY
-    document.getElementById('btn-gallery').addEventListener('click', () => {
-      scanMenu.classList.remove('active');
-      fileInput.click();
-    });
-
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        previewImg.src = ev.target.result;
-        previewImg.onload = () => {
-          sealCanvas.style.display = 'none';
-          previewImg.style.display = 'block';
-          processQRfromImage(previewImg);
-        };
-      };
-      reader.readAsDataURL(file);
-      fileInput.value = ''; // Сброс для повторного выбора того же файла
-    });
-
-    // Кнопка SAVE
-    document.getElementById('btn-save').addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = 'crypto-ornament.png';
-      
-      if (sealCanvas.style.display !== 'none') {
-        link.href = sealCanvas.toDataURL('image/png');
-      } else if (previewImg.src) {
-        link.href = previewImg.src;
-      } else {
-        return;
-      }
-      link.click();
-    });
-
-    // --- ЛОГИКА ВВОДА КЛЮЧЕЙ И РАСШИФРОВКИ ---
-    keyInput.addEventListener('input', updateLocks);
-
-    keyInput.addEventListener('keydown', async (e) => {
-      if (e.key === 'Enter') {
-        keyInput.classList.remove('blinking');
-        
-        if (pendingCiphertext) {
-          const activePass = keyInput.value.trim(); // ИСПРАВЛЕНО: добавлен .trim()
-          if (!activePass) return;
-
-          const result = await decryptData(pendingCiphertext, activePass);
-          
-          if (result !== null) {
-            textInput.value = result;
-            pendingCiphertext = null;
-          } else {
-            // НЕВЕРНЫЙ КЛЮЧ -> ОВЕРЛЕЙ ШПИОНА
-            spyOverlay.classList.add('active');
-          }
-        }
-      }
-    });
-
-    // Закрытие оверлея шпиона
-    document.getElementById('spy-close').addEventListener('click', () => {
-      spyOverlay.classList.remove('active');
-      keyInput.value = "";
-      keyInput.classList.add('blinking');
-      keyInput.focus();
-      updateLocks();
-    });
-
-  </script>
 </body>
 </html>
