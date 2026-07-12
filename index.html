@@ -21,7 +21,6 @@
             font-family: sans-serif;
         }
 
-        /* Главный контейнер зафиксирован на твои 1920х1080 */
         .interface-container {
             position: relative;
             width: 1920px;
@@ -31,7 +30,6 @@
             user-select: none;
         }
 
-        /* Общие интерактивные зоны для проявления белых надписей из 003.jpg */
         .hover-zone {
             position: absolute;
             cursor: pointer;
@@ -41,23 +39,23 @@
             background-repeat: no-repeat;
         }
 
-        /* Твои новые точные координаты из Фотошопа */
-        .zone-create { left: 306px; top: 227px; width: 283px; height: 54px; }
-        .zone-create:hover { background-position: -306px -227px; }
+        /* Точные координаты кнопок из Фотошопа */
+        .zone-create { left: 419px; top: 290px; width: 291px; height: 53px; }
+        .zone-create:hover { background-position: -419px -290px; }
 
-        .zone-scan { left: 1105px; top: 225px; width: 283px; height: 54px; }
-        .zone-scan:hover { background-position: -1105px -225px; }
+        .zone-scan { left: 1228px; top: 291px; width: 293px; height: 57px; }
+        .zone-scan:hover { background-position: -1228px -291px; }
 
-        .zone-rules { left: 707px; top: 834px; width: 269px; height: 57px; }
-        .zone-rules:hover { background-position: -707px -834px; }
+        .zone-rules { left: 816px; top: 905px; width: 301px; height: 68px; }
+        .zone-rules:hover { background-position: -816px -905px; }
 
-        .zone-back { left: 610px; top: 827px; width: 79px; height: 56px; }
-        .zone-back:hover { background-position: -610px -827px; }
+        .zone-back { left: 734px; top: 907px; width: 71px; height: 53px; }
+        .zone-back:hover { background-position: -734px -907px; }
 
-        .zone-save { left: 999px; top: 826px; width: 60px; height: 68px; }
-        .zone-save:hover { background-position: -999px -826px; }
+        .zone-save { left: 1124px; top: 906px; width: 63px; height: 66px; }
+        .zone-save:hover { background-position: -1124px -906px; }
 
-        /* Зеленые индикаторы замков прямо внутри окошек */
+        /* Зеленый текст индикаторов (выровнен по центру рамок замков) */
         .lock-text {
             position: absolute;
             font-weight: bold;
@@ -65,17 +63,20 @@
             color: #4af626;
             text-shadow: 0 0 5px rgba(74, 246, 38, 0.7);
             text-transform: uppercase;
+            width: 108px;
+            text-align: center;
+            line-height: 35px;
         }
-        #lock-left { left: 425px; top: 534px; }   
-        #lock-right { left: 1225px; top: 534px; }
+        #lock-left { left: 505px; top: 597px; height: 35px; }   
+        #lock-right { left: 1331px; top: 597px; height: 34px; width: 109px; }
 
         /* Центральное окно орнамента */
         .center-window {
             position: absolute;
-            left: 651px; 
-            top: 250px; 
-            width: 380px; 
-            height: 380px; 
+            left: 770px; 
+            top: 314px; 
+            width: 390px; 
+            height: 390px; 
             display: flex;
             justify-content: center;
             align-items: center;
@@ -84,10 +85,9 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            mix-blend-mode: color-dodge; /* Режим: Яркий свет */
+            mix-blend-mode: color-dodge;
         }
 
-        /* Выбор режима при нажатии SCAN */
         .scan-menu {
             display: none;
             position: absolute;
@@ -101,10 +101,9 @@
             color: #4af626;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(74, 246, 38, 0.4);
         }
 
-        /* Невидимые поля для ввода букв */
+        /* Поля ввода информации точно в рамки */
         .input-field {
             position: absolute;
             background: transparent;
@@ -115,22 +114,21 @@
             padding: 5px;
         }
         #input-key { 
-            left: 679px; 
-            top: 667px; 
-            width: 326px; 
-            height: 42px; 
+            left: 800px; 
+            top: 741px; 
+            width: 332px; 
+            height: 40px; 
         }
         #input-text { 
-            left: 511px; 
-            top: 739px; 
-            width: 663px; 
+            left: 629px; 
+            top: 814px; 
+            width: 677px; 
             height: 58px; 
             resize: none; 
         }
 
         #file-chooser { display: none; }
 
-        /* Окно Ошибки: Чудик-Шпион */
         .spy-overlay {
             display: none;
             position: absolute;
@@ -171,8 +169,8 @@
         <img id="ornament-view" src="" style="display:none;">
     </div>
 
-    <input type="text" class="input-field" id="input-key" placeholder="">
-    <textarea class="input-field" id="input-text" placeholder=""></textarea>
+    <input type="text" class="input-field" id="input-key">
+    <textarea class="input-field" id="input-text"></textarea>
     <input type="file" id="file-chooser" accept="image/*">
 
     <div class="spy-overlay" id="spy-screen">
@@ -193,15 +191,54 @@
     const ornamentView = document.getElementById('ornament-view');
     const spyScreen = document.getElementById('spy-screen');
 
-    // Логика переключения замков
     inputText.addEventListener('input', () => {
         lockLeft.textContent = inputText.value.length >= 3 ? "CLOSED" : "OPEN";
     });
 
     inputKey.addEventListener('input', () => {
         lockRight.textContent = inputKey.value.length >= 6 ? "CLOSED" : "OPEN";
-        
-        // Симуляция ошибки ввода ключа (если ввести слово 'wrong' — появится шпион)
         if(inputKey.value === 'wrong') {
             spyScreen.style.display = 'flex';
-            setTimeout(() => {
+            setTimeout(() => { 
+                spyScreen.style.display = 'none'; 
+                inputKey.value = ''; 
+                lockRight.textContent = "OPEN";
+            }, 4000);
+        }
+    });
+
+    actionScan.addEventListener('click', () => {
+        scanMenu.style.display = 'flex';
+        ornamentView.style.display = 'none';
+    });
+
+    choiceGallery.addEventListener('click', () => {
+        fileChooser.click();
+    });
+
+    fileChooser.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        scanMenu.style.display = 'none';
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            ornamentView.src = event.target.result;
+            ornamentView.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+
+        let textFromImage = "Секретный код обнаружен="; 
+
+        if(textFromImage.endsWith('=')) {
+            inputKey.focus();
+        } else {
+            inputText.value = textFromImage;
+            lockLeft.textContent = "CLOSED";
+        }
+    });
+</script>
+
+</body>
+</html>
