@@ -1,244 +1,378 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Seal Interface</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+// Объявление глобальных типов для библиотек без TS-определений
+declare const jsQR: any;
+declare const qrcode: any;
+
+export default function CryptoTerminal() {
+  // --- СОСТОЯНИЕ ---
+  const [text, setText] = useState('');
+  const [key, setKey] = useState('');
+  const [pendingCipher, setPendingCipher] = useState<string | null>(null);
+  const [showScanMenu, setShowScanMenu] = useState(false);
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [showSpyOverlay, setShowSpyOverlay] = useState(false);
+  const [galleryImg, setGalleryImg] = useState<string | null>(null);
+  const [isBlinking, setIsBlinking] = useState(false);
+
+  // --- РЕФЫ ---
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const keyInputRef = useRef<HTMLInputElement>(null);
+
+  // --- МАСШТАБИРОВАНИЕ ПОД ЭКРАН ---
+  useEffect(() => {
+    const handleResize = () => {
+      if (!wrapperRef.current) return;
+      const scaleX = window.innerWidth / 1440;
+      const scaleY = window.innerHeight / 900;
+      const scale = Math.min(scaleX, scaleY);
+      wrapperRef.current.style.transform = `scale(${scale})`;
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- КРИПТОГРАФИЯ (PBKDF2 + AES-GCM) ---
+  const encryptData = async (plaintext: string, passwordKey: string): Promise<string> => {
+    const enc = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const km = await crypto.subtle.importKey("raw", enc.encode(passwordKey), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations: 390000, hash: "SHA-256" },
+      km, { name: "AES-GCM", length: 256 }, false, ["encrypt"]
+    );
+    const nonce = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, enc.encode(plaintext));
+    const comb = new Uint8Array(40 + ct.byteLength);
+    comb.set(salt, 0);
+    comb.set(nonce, 16);
+    comb.set(new Uint8Array(ct), 28);
+    let binary = '';
+    for (let i = 0; i < comb.byteLength; i++) binary += String.fromCharCode(comb[i]);
+    return btoa(binary);
+  };
+
+  const decryptData = async (b64: string, passwordKey: string): Promise<string | null> => {
+    try {
+      const enc = new TextEncoder();
+      const binaryString = atob(b64);
+      const comb = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) comb[i] = binaryString.charCodeAt(i);
+      const salt = comb.slice(0, 16);
+      const nonce = comb.slice(16, 28);
+      const ct = comb.slice(28);
+      const km = await crypto.subtle.importKey("raw", enc.encode(passwordKey), "PBKDF2", false, ["deriveKey"]);
+      const key = await crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt, iterations: 390000, hash: "SHA-256" },
+        km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
+      );
+      const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, ct);
+      return new TextDecoder().decode(dec);
+    } catch (e) {
+      return null; // Ошибка расшифровки (неверный ключ)
+    }
+  };
+
+  // --- ГЕНЕРАЦИЯ ОРНАМЕНТА ---
+  const drawOrnament = useCallback((dataString: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx || !dataString) return;
+
+    ctx.clearRect(0, 0, 400, 400);
+    ctx.fillStyle = "rgb(20, 20, 20)";
+    ctx.fillRect(0, 0, 400, 400);
+
+    try {
+      const utf8 = unescape(encodeURIComponent(dataString));
+      const qr = qrcode(0, 'M');
+      qr.addData(utf8);
+      qr.make();
+      const mc = qr.getModuleCount();
+      const cellSize = Math.floor(380 / mc);
+      const offset = Math.floor((400 - cellSize * mc) / 2);
+
+      for (let r = 0; r < mc; r++) {
+        for (let c = 0; c < mc; c++) {
+          if (qr.isDark(r, c)) {
+            const isPattern = (r + c) % 3 === 0 || r % 5 === 0;
+            ctx.fillStyle = isPattern ? "rgb(200, 180, 140)" : "rgb(255, 255, 255)";
+            ctx.fillRect(offset + c * cellSize, offset + r * cellSize, cellSize, cellSize);
+          }
         }
+      }
+    } catch (e) {
+      console.error("QR generation failed", e);
+    }
+  }, []);
 
-        body {
-            background: #0d0d0d;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            font-family: sans-serif;
-        }
+  // --- ОБРАБОТКА ЗАГРУЖЕННОГО ИЗОБРАЖЕНИЯ ---
+  const processImage = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setGalleryImg(dataUrl); // Накладываем картинку поверх холста
 
-        .interface-container {
-            position: relative;
-            width: 1920px;
-            height: 1080px;
-            background: url('004.jpg') no-repeat center center;
-            background-size: contain;
-            user-select: none;
-        }
-
-        .hover-zone {
-            position: absolute;
-            cursor: pointer;
-        }
-        .hover-zone:hover {
-            background-image: url('003.jpg');
-            background-repeat: no-repeat;
-        }
-
-        /* Точные координаты кнопок из Фотошопа */
-        .zone-create { left: 419px; top: 290px; width: 291px; height: 53px; }
-        .zone-create:hover { background-position: -419px -290px; }
-
-        .zone-scan { left: 1228px; top: 291px; width: 293px; height: 57px; }
-        .zone-scan:hover { background-position: -1228px -291px; }
-
-        .zone-rules { left: 816px; top: 905px; width: 301px; height: 68px; }
-        .zone-rules:hover { background-position: -816px -905px; }
-
-        .zone-back { left: 734px; top: 907px; width: 71px; height: 53px; }
-        .zone-back:hover { background-position: -734px -907px; }
-
-        .zone-save { left: 1124px; top: 906px; width: 63px; height: 66px; }
-        .zone-save:hover { background-position: -1124px -906px; }
-
-        /* Зеленый текст индикаторов (выровнен по центру рамок замков) */
-        .lock-text {
-            position: absolute;
-            font-weight: bold;
-            font-size: 14px;
-            color: #4af626;
-            text-shadow: 0 0 5px rgba(74, 246, 38, 0.7);
-            text-transform: uppercase;
-            width: 108px;
-            text-align: center;
-            line-height: 35px;
-        }
-        #lock-left { left: 505px; top: 597px; height: 35px; }   
-        #lock-right { left: 1331px; top: 597px; height: 34px; width: 109px; }
-
-        /* Центральное окно орнамента */
-        .center-window {
-            position: absolute;
-            left: 770px; 
-            top: 314px; 
-            width: 390px; 
-            height: 390px; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .center-window img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            mix-blend-mode: color-dodge;
-        }
-
-        .scan-menu {
-            display: none;
-            position: absolute;
-            gap: 20px;
-            z-index: 10;
-        }
-        .scan-btn {
-            padding: 12px 24px;
-            background: rgba(15, 15, 15, 0.95);
-            border: 2px solid #4af626;
-            color: #4af626;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        /* Поля ввода информации точно в рамки */
-        .input-field {
-            position: absolute;
-            background: transparent;
-            border: none;
-            color: #ffffff;
-            font-size: 18px;
-            outline: none;
-            padding: 5px;
-        }
-        #input-key { 
-            left: 800px; 
-            top: 741px; 
-            width: 332px; 
-            height: 40px; 
-        }
-        #input-text { 
-            left: 629px; 
-            top: 814px; 
-            width: 677px; 
-            height: 58px; 
-            resize: none; 
-        }
-
-        #file-chooser { display: none; }
-
-        .spy-overlay {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.96);
-            z-index: 999;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #ff3333;
-            font-size: 28px;
-            font-weight: bold;
-            text-align: center;
-        }
-        .spy-overlay img {
-            max-width: 250px;
-            margin-bottom: 30px;
-        }
-    </style>
-</head>
-<body>
-
-<div class="interface-container">
-    <div class="hover-zone zone-create" id="action-create"></div>
-    <div class="hover-zone zone-scan" id="action-scan"></div>
-    <div class="hover-zone zone-rules" id="action-rules"></div>
-    <div class="hover-zone zone-back" id="action-back"></div>
-    <div class="hover-zone zone-save" id="action-save"></div>
-
-    <div class="lock-text" id="lock-left">OPEN</div>
-    <div class="lock-text" id="lock-right">OPEN</div>
-
-    <div class="center-window" id="window-display">
-        <div class="scan-menu" id="scan-menu">
-            <button class="scan-btn" id="choice-camera">CAMERA</button>
-            <button class="scan-btn" id="choice-gallery">GALLERY</button>
-        </div>
-        <img id="ornament-view" src="" style="display:none;">
-    </div>
-
-    <input type="text" class="input-field" id="input-key">
-    <textarea class="input-field" id="input-text"></textarea>
-    <input type="file" id="file-chooser" accept="image/*">
-
-    <div class="spy-overlay" id="spy-screen">
-        <img src="spy.png" alt="Шпион">
-        <div>Держава не доверяет вам<br><span style="font-size: 20px; color: #777;">The State does not trust you</span></div>
-    </div>
-</div>
-
-<script>
-    const inputText = document.getElementById('input-text');
-    const inputKey = document.getElementById('input-key');
-    const lockLeft = document.getElementById('lock-left');
-    const lockRight = document.getElementById('lock-right');
-    const actionScan = document.getElementById('action-scan');
-    const scanMenu = document.getElementById('scan-menu');
-    const choiceGallery = document.getElementById('choice-gallery');
-    const fileChooser = document.getElementById('file-chooser');
-    const ornamentView = document.getElementById('ornament-view');
-    const spyScreen = document.getElementById('spy-screen');
-
-    inputText.addEventListener('input', () => {
-        lockLeft.textContent = inputText.value.length >= 3 ? "CLOSED" : "OPEN";
-    });
-
-    inputKey.addEventListener('input', () => {
-        lockRight.textContent = inputKey.value.length >= 6 ? "CLOSED" : "OPEN";
-        if(inputKey.value === 'wrong') {
-            spyScreen.style.display = 'flex';
-            setTimeout(() => { 
-                spyScreen.style.display = 'none'; 
-                inputKey.value = ''; 
-                lockRight.textContent = "OPEN";
-            }, 4000);
-        }
-    });
-
-    actionScan.addEventListener('click', () => {
-        scanMenu.style.display = 'flex';
-        ornamentView.style.display = 'none';
-    });
-
-    choiceGallery.addEventListener('click', () => {
-        fileChooser.click();
-    });
-
-    fileChooser.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        scanMenu.style.display = 'none';
+      const img = new Image();
+      img.onload = () => {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const ctx = tempCanvas.getContext('2d', { willReadFrequently: true })!;
+        ctx.drawImage(img, 0, 0);
         
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            ornamentView.src = event.target.result;
-            ornamentView.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+        const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
 
-        let textFromImage = "Секретный код обнаружен="; 
-
-        if(textFromImage.endsWith('=')) {
-            inputKey.focus();
+        if (code && code.data) {
+          const trimmed = code.data.trim();
+          if (trimmed.endsWith('=')) {
+            setPendingCipher(trimmed);
+            setText('');
+            setKey('');
+            setIsBlinking(true);
+            setTimeout(() => keyInputRef.current?.focus(), 100);
+          } else {
+            setText(trimmed);
+            setPendingCipher(null);
+            setIsBlinking(false);
+          }
         } else {
-            inputText.value = textFromImage;
-            lockLeft.textContent = "CLOSED";
+          // Нераспознанный QR -> Модалка "Агент, стоп!"
+          setShowAgentModal(true);
         }
-    });
-</script>
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
-</body>
-</html>
+  // --- ОБРАБОТЧИКИ КНОПОК ---
+  const handleCreate = async () => {
+    if (!text.trim()) return;
+    const pass = key.trim();
+    let dataToDraw = text;
+    if (pass) {
+      dataToDraw = await encryptData(text, pass);
+    }
+    drawOrnament(dataToDraw);
+  };
+
+  const handleScan = () => {
+    setShowScanMenu(!showScanMenu);
+  };
+
+  const handleGallery = () => {
+    setShowScanMenu(false);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processImage(file);
+    e.target.value = ''; // сброс для повторного выбора того же файла
+  };
+
+  const handleSave = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = 'crypto-ornament.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  // --- ЛОГИКА ВВОДА КЛЮЧЕЙ И РАСШИФРОВКИ ---
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setIsBlinking(false);
+      const trimmedKey = key.trim();
+
+      // Проверка на слово "неправильно"
+      if (trimmedKey.toLowerCase() === 'неправильно') {
+        setShowSpyOverlay(true);
+        setTimeout(() => {
+          setShowSpyOverlay(false);
+          setKey('');
+        }, 4000); // Автоскрытие через 4 секунды
+        return;
+      }
+
+      // Если есть ожидающий шифр
+      if (pendingCipher && trimmedKey) {
+        const result = await decryptData(pendingCipher, trimmedKey); // .trim() применен выше
+        
+        if (result !== null) {
+          setText(result);
+          setPendingCipher(null);
+        } else {
+          // Просто неверный ключ (ничего не делаем, или можно добавить тряску)
+        }
+      }
+    }
+  };
+
+  // --- ВЫЧИСЛЯЕМЫЕ ЗНАЧЕНИЯ ДЛЯ ЗАМКОВ ---
+  const isLeftLocked = text.length >= 3;
+  const isRightLocked = key.length >= 6;
+
+  // --- МАССИВ ЗОН ХОВЕРА ---
+  const hoverZones = [
+    { id: 'create', x: 419, y: 290, w: 291, h: 53, action: handleCreate },
+    { id: 'scan', x: 1228, y: 291, w: 293, h: 57, action: handleScan },
+    { id: 'rules', x: 816, y: 905, w: 301, h: 68, action: () => {} },
+    { id: 'back', x: 734, y: 907, w: 71, h: 53, action: () => {} },
+    { id: 'save', x: 1124, y: 906, w: 63, h: 66, action: handleSave },
+  ];
+
+  return (
+    <div className="bg-black w-screen h-screen flex justify-center items-center overflow-hidden">
+      <div 
+        ref={wrapperRef}
+        className="relative w-[1440px] h-[900px] origin-center overflow-hidden"
+        style={{ backgroundImage: "url('/004.jpg')" }}
+      >
+        {/* Невидимые интерактивные зоны ховера */}
+        {hoverZones.map(zone => (
+          <div
+            key={zone.id}
+            className="absolute cursor-pointer z-10 opacity-0 hover:opacity-100 transition-opacity duration-150"
+            style={{
+              left: `${zone.x}px`,
+              top: `${zone.y}px`,
+              width: `${zone.w}px`,
+              height: `${zone.h}px`,
+              backgroundImage: "url('/003.jpg')",
+              backgroundSize: '1440px 900px',
+              backgroundPosition: `-${zone.x}px -${zone.y}px`
+            }}
+            onClick={zone.action}
+          />
+        ))}
+
+        {/* Замки */}
+        <div className="absolute top-[400px] w-full flex justify-between px-[100px] z-20 pointer-events-none">
+          <div className="text-white text-xl font-bold text-center w-[150px] text-shadow">
+            {isLeftLocked ? (
+              <>CLOSED<br/><span className="text-sm text-gray-300">ЗАКРИТО</span></>
+            ) : (
+              <>OPEN<br/><span className="text-sm text-gray-300">ВІДКРИТО</span></>
+            )}
+          </div>
+          <div className="text-white text-xl font-bold text-center w-[150px] text-shadow">
+            {isRightLocked ? (
+              <>CLOSED<br/><span className="text-sm text-gray-300">ЗАКРИТО</span></>
+            ) : (
+              <>OPEN<br/><span className="text-sm text-gray-300">ВІДКРИТО</span></>
+            )}
+          </div>
+        </div>
+
+        {/* Центральное окно */}
+        <div className="absolute left-[520px] top-[310px] w-[400px] h-[440px] bg-black/60 border border-white/10 flex justify-center items-center z-20 overflow-hidden">
+          {/* Холст с орнаментом */}
+          <canvas 
+            ref={canvasRef} 
+            width="400" 
+            height="400" 
+            className="max-w-full max-h-full mix-blend-color-dodge"
+          />
+          
+          {/* Наложенное фото из галереи */}
+          {galleryImg && (
+            <img 
+              src={galleryImg} 
+              alt="Scanned overlay" 
+              className="absolute inset-0 w-full h-full object-contain mix-blend-color-dodge pointer-events-none z-30"
+            />
+          )}
+
+          {/* Меню сканирования */}
+          {showScanMenu && (
+            <div className="absolute inset-0 bg-black/85 flex flex-col justify-center items-center gap-5 z-40">
+              <button 
+                onClick={() => { setShowScanMenu(false); alert('CAMERA: Автозапуск отключен по ТЗ'); }}
+                className="px-10 py-3 border border-white text-white text-lg tracking-widest hover:bg-white hover:text-black transition-colors"
+              >
+                CAMERA
+              </button>
+              <button 
+                onClick={handleGallery}
+                className="px-10 py-3 border border-white text-white text-lg tracking-widest hover:bg-white hover:text-black transition-colors"
+              >
+                GALLERY
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Поля ввода */}
+        <div className="absolute bottom-[120px] left-1/2 -translate-x-1/2 w-[600px] z-30 flex flex-col gap-4">
+          <textarea 
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Текст таємниці / Secret payload..."
+            className="w-full p-3 bg-black/70 border border-white/30 text-green-400 font-mono outline-none focus:border-green-400 resize-none h-[60px]"
+          />
+          <input 
+            ref={keyInputRef}
+            type="password"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="КЛЮЧ / PASSWORD"
+            maxLength={12}
+            className={`w-full p-3 bg-black/70 border border-white/30 text-green-400 font-mono outline-none focus:border-green-400 ${isBlinking ? 'animate-pulse' : ''}`}
+          />
+        </div>
+
+        {/* Скрытый инпут файла */}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileChange} 
+          accept="image/*" 
+          className="hidden" 
+        />
+
+        {/* Модалка "Агент, стоп!" (Нераспознанный QR) */}
+        {showAgentModal && (
+          <div className="absolute inset-0 bg-black/95 z-50 flex flex-col justify-center items-center text-center p-8">
+            <div className="text-8xl mb-6 animate-bounce">🕵️‍♂️</div>
+            <h2 className="text-red-500 text-4xl font-bold mb-4 tracking-widest font-mono">АГЕНТ, СТОП!</h2>
+            <p className="text-gray-300 text-lg mb-8">Ці дані зашифровані. Назовіть секретне слово.</p>
+            <button 
+              onClick={() => setShowAgentModal(false)}
+              className="px-8 py-3 border border-red-500 text-red-500 hover:bg-red-500 hover:text-black transition-colors tracking-widest font-bold"
+            >
+              ЗАКРЫТЬ
+            </button>
+          </div>
+        )}
+
+        {/* Оверлей spy.png (Слово "неправильно") */}
+        {showSpyOverlay && (
+          <div className="absolute inset-0 z-50 flex flex-col justify-center items-center pointer-events-none">
+            <img 
+              src="/spy.png" 
+              alt="Spy" 
+              className="max-w-[600px] w-full object-contain drop-shadow-2xl animate-bounce"
+            />
+            <div className="mt-8 text-center">
+              <h1 className="text-red-600 text-5xl font-bold tracking-wider drop-shadow-lg" style={{ textShadow: '0 0 20px rgba(220, 38, 38, 0.8)' }}>
+                ДЕРЖАВА НЕ ДОВІРЯЄ ВАМ
+              </h1>
+              <p className="text-white text-2xl mt-4 tracking-widest">
+                THE STATE DOES NOT TRUST YOU
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
