@@ -95,16 +95,25 @@ function generateMandala() {
     qr.make();
     
     const modCount = qr.getModuleCount();
-    const modSize = 512 / (modCount + 8);
-    const gridR = buildGrid(modCount + 4);
-    const gridG = buildGrid(modCount + 4);
+    const border = 4;
+    const size = modCount + border * 2;
+    const modSize = 512 / size;
 
-    for (let r = 0; r < modCount + 4; r++) {
-        for (let c = 0; c < modCount + 4; c++) {
+    // Рамка (совпадает по тону)
+    els.ctx.fillStyle = "rgb(200, 200, 200)";
+    els.ctx.fillRect(0, 0, 512, 512);
+    els.ctx.fillStyle = "rgb(50, 50, 50)";
+    els.ctx.fillRect(modSize*border, modSize*border, 512 - modSize*border*2, 512 - modSize*border*2);
+
+    const gridR = buildGrid(size);
+    const gridG = buildGrid(size);
+
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
             let valB = 50;
-            if (r >= 2 && r < modCount + 2 && c >= 2 && c < modCount + 2) if (qr.isDark(r - 2, c - 2)) valB = 200;
+            if (r >= border && r < modCount + border && c >= border && c < modCount + border) if (qr.isDark(r - border, c - border)) valB = 200;
             els.ctx.fillStyle = `rgb(${gridR[r][c]?200:50}, ${gridG[r][c]?200:50}, ${valB})`;
-            els.ctx.fillRect(c * modSize + modSize*1.5, r * modSize + modSize*1.5, modSize + 0.5, modSize + 0.5);
+            els.ctx.fillRect(c * modSize, r * modSize, modSize + 0.5, modSize + 0.5);
         }
     }
     els.btnSave.classList.remove('hidden');
@@ -124,8 +133,8 @@ els.fileInput.onchange = (e) => {
                 const dec = atob(code.data.slice(1));
                 let res = "";
                 for(let i=0; i<dec.length; i++) res += String.fromCharCode(dec.charCodeAt(i) ^ els.keyInput.value.charCodeAt(i % els.keyInput.value.length));
-                els.textInput.value = els.keyInput.value ? res : code.data;
-            } else els.textInput.value = code ? code.data : "QR не найден";
+                els.textInput.value = res;
+            } else els.textInput.value = code ? code.data : "";
             generateMandala();
         };
         img.src = event.target.result;
