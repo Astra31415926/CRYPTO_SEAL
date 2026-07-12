@@ -21,7 +21,7 @@
             font-family: sans-serif;
         }
 
-        /* Главный контейнер (16:9) */
+        /* Главный контейнер зафиксирован на твои 1920х1080 */
         .interface-container {
             position: relative;
             width: 1920px;
@@ -31,7 +31,7 @@
             user-select: none;
         }
 
-        /* Зоны ховера (проявление белых надписей из 003.jpg) */
+        /* Общие интерактивные зоны для проявления белых надписей из 003.jpg */
         .hover-zone {
             position: absolute;
             cursor: pointer;
@@ -41,7 +41,7 @@
             background-repeat: no-repeat;
         }
 
-        /* Точные координаты кнопок */
+        /* Твои новые точные координаты из Фотошопа */
         .zone-create { left: 306px; top: 227px; width: 283px; height: 54px; }
         .zone-create:hover { background-position: -306px -227px; }
 
@@ -57,25 +57,25 @@
         .zone-save { left: 999px; top: 826px; width: 60px; height: 68px; }
         .zone-save:hover { background-position: -999px -826px; }
 
-        /* Текстовые замки кодом */
+        /* Зеленые индикаторы замков прямо внутри окошек */
         .lock-text {
             position: absolute;
             font-weight: bold;
-            font-size: 20px;
+            font-size: 14px;
             color: #4af626;
-            text-shadow: 0 0 8px rgba(74, 246, 38, 0.7);
+            text-shadow: 0 0 5px rgba(74, 246, 38, 0.7);
             text-transform: uppercase;
         }
-        #lock-left { left: 395px; top: 585px; }   
-        #lock-right { left: 1195px; top: 585px; }
+        #lock-left { left: 425px; top: 534px; }   
+        #lock-right { left: 1225px; top: 534px; }
 
-        /* Точное центральное окно из Фотошопа */
+        /* Центральное окно орнамента */
         .center-window {
             position: absolute;
             left: 651px; 
             top: 250px; 
-            width: 440px; 
-            height: 388px; 
+            width: 380px; 
+            height: 380px; 
             display: flex;
             justify-content: center;
             align-items: center;
@@ -87,7 +87,7 @@
             mix-blend-mode: color-dodge; /* Режим: Яркий свет */
         }
 
-        /* Всплывающий выбор SCAN */
+        /* Выбор режима при нажатии SCAN */
         .scan-menu {
             display: none;
             position: absolute;
@@ -96,15 +96,15 @@
         }
         .scan-btn {
             padding: 12px 24px;
-            background: rgba(20, 20, 20, 0.9);
+            background: rgba(15, 15, 15, 0.95);
             border: 2px solid #4af626;
             color: #4af626;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(74, 246, 38, 0.3);
+            box-shadow: 0 0 10px rgba(74, 246, 38, 0.4);
         }
 
-        /* Поля ввода по твоим точным координатам */
+        /* Невидимые поля для ввода букв */
         .input-field {
             position: absolute;
             background: transparent;
@@ -114,26 +114,23 @@
             outline: none;
             padding: 5px;
         }
-        /* Окно ввода секретного текста (Снимок экрана 23:35:46) */
-        #input-text { 
-            left: 511px; 
-            top: 739px; 
-            width: 720px; 
-            height: 62px; 
-            resize: none; 
-        }
-        /* Поле ввода ключа пароля (Снимок экрана 23:34:40) */
         #input-key { 
             left: 679px; 
             top: 667px; 
-            width: 383px; 
-            height: 48px; 
+            width: 326px; 
+            height: 42px; 
+        }
+        #input-text { 
+            left: 511px; 
+            top: 739px; 
+            width: 663px; 
+            height: 58px; 
+            resize: none; 
         }
 
-        /* Элемент скрытого выбора файла */
         #file-chooser { display: none; }
 
-        /* Экрана ошибки: Чудик-шпион */
+        /* Окно Ошибки: Чудик-Шпион */
         .spy-overlay {
             display: none;
             position: absolute;
@@ -174,12 +171,13 @@
         <img id="ornament-view" src="" style="display:none;">
     </div>
 
-    <textarea class="input-field" id="input-text" placeholder=""></textarea>
     <input type="text" class="input-field" id="input-key" placeholder="">
+    <textarea class="input-field" id="input-text" placeholder=""></textarea>
     <input type="file" id="file-chooser" accept="image/*">
 
     <div class="spy-overlay" id="spy-screen">
-        <img src="spy.png" alt="Шпион"> <div>Держава не доверяет вам<br><span style="font-size: 20px; color: #aaa;">The State does not trust you</span></div>
+        <img src="spy.png" alt="Шпион">
+        <div>Держава не доверяет вам<br><span style="font-size: 20px; color: #777;">The State does not trust you</span></div>
     </div>
 </div>
 
@@ -195,7 +193,7 @@
     const ornamentView = document.getElementById('ornament-view');
     const spyScreen = document.getElementById('spy-screen');
 
-    // Логика замков: Ввод текста закрывает их (появляется CLOSED)
+    // Логика переключения замков
     inputText.addEventListener('input', () => {
         lockLeft.textContent = inputText.value.length >= 3 ? "CLOSED" : "OPEN";
     });
@@ -203,55 +201,7 @@
     inputKey.addEventListener('input', () => {
         lockRight.textContent = inputKey.value.length >= 6 ? "CLOSED" : "OPEN";
         
-        // Проверка ключа: если введено неправильно (например 'wrong'), вылетает шпион
+        // Симуляция ошибки ввода ключа (если ввести слово 'wrong' — появится шпион)
         if(inputKey.value === 'wrong') {
             spyScreen.style.display = 'flex';
-            setTimeout(() => { 
-                spyScreen.style.display = 'none'; 
-                inputKey.value = ''; 
-                lockRight.textContent = "OPEN";
-            }, 4000);
-        }
-    });
-
-    // Нажатие на кнопку SCAN
-    actionScan.addEventListener('click', () => {
-        scanMenu.style.display = 'flex';
-        ornamentView.style.display = 'none';
-    });
-
-    // Нажатие на GALLERY вызывает системный выбор файла
-    choiceGallery.addEventListener('click', () => {
-        fileChooser.click();
-    });
-
-    // Логика после выбора картинки из галереи
-    fileChooser.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        scanMenu.style.display = 'none';
-        
-        // Показываем выбранную картинку в центральном окне
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            ornamentView.src = event.target.result;
-            ornamentView.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-
-        // Симуляция считывания текста. Поменяй на свою логику чтения кода.
-        let textFromImage = "Секретный текст зашифрован="; 
-
-        // Проверка на знак "=" в конце текста
-        if(textFromImage.endsWith('=')) {
-            inputKey.focus(); // Курсор начинает мерцать в поле ввода ключа
-        } else {
-            inputText.value = textFromImage;
-            lockLeft.textContent = "CLOSED";
-        }
-    });
-</script>
-
-</body>
-</html>
+            setTimeout(() => {
