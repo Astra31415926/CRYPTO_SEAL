@@ -99,7 +99,6 @@ function generateMandala() {
     const size = modCount + border * 2;
     const modSize = 512 / size;
 
-    // Рамка (совпадает по тону)
     els.ctx.fillStyle = "rgb(200, 200, 200)";
     els.ctx.fillRect(0, 0, 512, 512);
     els.ctx.fillStyle = "rgb(50, 50, 50)";
@@ -120,26 +119,60 @@ function generateMandala() {
     els.btnChange.classList.remove('hidden');
 }
 
+function showSpyMessage() {
+    const spy = document.createElement('div');
+    spy.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;color:red;font-size:24px;font-family:monospace;text-transform:uppercase;letter-spacing:2px';
+    spy.innerHTML = '<div style="font-size:80px;margin-bottom:20px;">🕵️‍♂️</div><div>Держава не доверяет вам</div><div style="color:white;font-size:16px;margin-top:10px;">The State does not trust you</div>';
+    document.body.appendChild(spy);
+    setTimeout(() => spy.remove(), 3000);
+}
+
 els.fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
             els.ctx.drawImage(img, 0, 0, 512, 512);
-            const data = els.ctx.getImageData(0, 0, 512, 512).data;
-            for(let i=0; i<data.length; i+=4) data[i] = data[i+1] = data[i+2] = data[i+2] > 125 ? 255 : 0;
-            const code = jsQR(data, 512, 512);
-            if (code && code.data.startsWith('|')) {
-                const dec = atob(code.data.slice(1));
-                let res = "";
-                for(let i=0; i<dec.length; i++) res += String.fromCharCode(dec.charCodeAt(i) ^ els.keyInput.value.charCodeAt(i % els.keyInput.value.length));
-                els.textInput.value = res;
-            } else els.textInput.value = code ? code.data : "";
+            const imgData = els.ctx.getImageData(0, 0, 512, 512);
+            const data = imgData.data;
+            for(let i=0; i<data.length; i+=4) {
+                const val = data[i+2];
+                data[i] = val;
+                data[i+1] = val;
+                data[i+2] = val;
+            }
+            const code = jsQR(data, 512, 512, { inversionAttempts: "attemptBoth" });
+            if (code) {
+                if (code.data.startsWith('|')) {
+                    const currentKey = els.keyInput.value;
+                    if (!currentKey) {
+                        showSpyMessage();
+                        els.textInput.value = "";
+                    } else {
+                        try {
+                            const dec = atob(code.data.slice(1));
+                            let res = "";
+                            for(let i=0; i<dec.length; i++) res += String.fromCharCode(dec.charCodeAt(i) ^ currentKey.charCodeAt(i % currentKey.length));
+                            els.textInput.value = res;
+                        } catch(err) {
+                            showSpyMessage();
+                            els.textInput.value = "";
+                        }
+                    }
+                } else {
+                    els.textInput.value = code.data;
+                }
+            } else {
+                els.textInput.value = "";
+            }
             generateMandala();
         };
         img.src = event.target.result;
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
 };
 
 els.btnChange.onclick = generateMandala;
