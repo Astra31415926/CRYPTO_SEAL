@@ -17,10 +17,10 @@ root.innerHTML = `
         </div>
         <div class="w-full flex flex-col gap-4">
             <input id="text-input" type="text" placeholder="Введите текст..." class="stone-input w-full px-4 py-3 rounded text-lg">
-            <input id="key-input" type="text" placeholder="Ключ (3 и 6 символов)..." class="stone-input w-full px-4 py-2 rounded text-sm">
+            <input id="key-input" type="text" placeholder="Ключ..." class="stone-input w-full px-4 py-2 rounded text-sm">
             <div class="flex flex-col sm:flex-row gap-4 w-full">
                 <label class="stone-btn flex-1 py-3 rounded font-bold text-center block cursor-pointer bg-neutral-800 hover:bg-neutral-700 text-sm">Сканировать<input id="file-input" type="file" accept="image/*" class="hidden"></label>
-                <button id="btn-change-ornament" class="stone-btn hidden flex-1 py-3 rounded font-bold text-white bg-neutral-700 hover:bg-neutral-600 text-sm">Обновить орнамент</button>
+                <button id="btn-change-ornament" class="stone-btn hidden flex-1 py-3 rounded font-bold text-white bg-neutral-700 hover:bg-neutral-600 text-sm">Обновить</button>
                 <button id="btn-save" class="stone-btn hidden flex-1 py-3 rounded font-bold text-white bg-green-900 border-green-700 hover:bg-green-800 text-sm">Сохранить</button>
             </div>
         </div>
@@ -47,7 +47,13 @@ function updateLocks() {
     els.lock2.className = k.length >= 6 ? "lock-indicator locked" : "lock-indicator";
 }
 
-function build7x7Grid(size) {
+function simpleXor(text, key) {
+    let res = "";
+    for(let i=0; i<text.length; i++) res += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    return btoa(res);
+}
+
+function buildGrid(size) {
     const grid = Array(size).fill(0).map(() => Array(size).fill(0));
     const center = Math.floor(size / 2);
     for (let by = 0; by < Math.ceil(size / 14); by++) {
@@ -70,13 +76,13 @@ function build7x7Grid(size) {
 }
 
 function generateMandala() {
-    let text = els.textInput.value;
+    const raw = els.textInput.value;
     const key = els.keyInput.value;
-    if (key.length > 0) text = "|" + btoa(text + ":::" + key);
+    const text = key ? "|" + simpleXor(raw, key) : raw;
     
     els.ctx.fillStyle = "#000000"; 
     els.ctx.fillRect(0, 0, 512, 512);
-    if (!els.textInput.value.trim()) {
+    if (!raw.trim()) {
         els.canvas.style.opacity = 0.1;
         els.btnSave.classList.add('hidden');
         els.btnChange.classList.add('hidden');
@@ -90,30 +96,19 @@ function generateMandala() {
     
     const modCount = qr.getModuleCount();
     const modSize = 512 / (modCount + 8);
-    els.ctx.fillStyle = "rgb(200, 200, 200)";
-    els.ctx.fillRect(0, 0, 512, 512);
-    els.ctx.fillStyle = "rgb(50, 50, 50)";
-    els.ctx.fillRect(modSize * 3, modSize * 3, 512 - modSize * 6, 512 - modSize * 6);
+    const gridR = buildGrid(modCount + 4);
+    const gridG = buildGrid(modCount + 4);
 
-    const grid = build7x7Grid(modCount + 4);
     for (let r = 0; r < modCount + 4; r++) {
         for (let c = 0; c < modCount + 4; c++) {
             let valB = 50;
             if (r >= 2 && r < modCount + 2 && c >= 2 && c < modCount + 2) if (qr.isDark(r - 2, c - 2)) valB = 200;
-            els.ctx.fillStyle = `rgb(${grid[r][c]?200:50}, ${grid[r][c]?200:50}, ${valB})`;
+            els.ctx.fillStyle = `rgb(${gridR[r][c]?200:50}, ${gridG[r][c]?200:50}, ${valB})`;
             els.ctx.fillRect(c * modSize + modSize*1.5, r * modSize + modSize*1.5, modSize + 0.5, modSize + 0.5);
         }
     }
     els.btnSave.classList.remove('hidden');
     els.btnChange.classList.remove('hidden');
-}
-
-function drawSpy() {
-    els.ctx.fillStyle = "black";
-    els.ctx.fillRect(0, 0, 512, 512);
-    els.ctx.fillStyle = "red";
-    els.ctx.font = "20px monospace";
-    els.ctx.fillText("ДЕРЖАВА НЕ ДОВЕРЯЕТ ВАМ", 100, 256);
 }
 
 els.fileInput.onchange = (e) => {
@@ -126,11 +121,10 @@ els.fileInput.onchange = (e) => {
             for(let i=0; i<data.length; i+=4) data[i] = data[i+1] = data[i+2] = data[i+2] > 125 ? 255 : 0;
             const code = jsQR(data, 512, 512);
             if (code && code.data.startsWith('|')) {
-                try {
-                    const raw = atob(code.data.slice(1)).split(':::');
-                    if (raw[1] === els.keyInput.value) els.textInput.value = raw[0];
-                    else drawSpy();
-                } catch(e) { drawSpy(); }
+                const dec = atob(code.data.slice(1));
+                let res = "";
+                for(let i=0; i<dec.length; i++) res += String.fromCharCode(dec.charCodeAt(i) ^ els.keyInput.value.charCodeAt(i % els.keyInput.value.length));
+                els.textInput.value = els.keyInput.value ? res : code.data;
             } else els.textInput.value = code ? code.data : "QR не найден";
             generateMandala();
         };
