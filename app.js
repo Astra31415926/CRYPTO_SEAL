@@ -9,44 +9,35 @@ const BUTTONS = {
 
 // Рендерим HTML-структуру внутрь #root
 document.getElementById('root').innerHTML = `
-    <div class="relative w-[1920px] h-[1080px] bg-cover bg-center select-none overflow-hidden" style="background-image: url('/004.jpg');">
+    <div class="relative w-[1920px] h-[1080px] bg-cover bg-center select-none overflow-hidden" style="background-image: url('004.jpg');">
         
-        <!-- Ховер-слой с маской (003.jpg) -->
-        <div id="hover-mask" class="absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-150 mix-blend-screen" style="background-image: url('/003.jpg');"></div>
+        <div id="hover-mask" class="absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-150 mix-blend-screen" style="background-image: url('003.jpg');"></div>
 
-        <!-- Контейнер для интерактивных зон (кнопок) -->
         <div id="buttons-container" class="absolute inset-0"></div>
 
-        <!-- Поле ТЕКСТА (Инпут 1) -->
         <input type="text" id="input-text" placeholder="Введите текст..." 
             class="absolute bg-transparent text-[#00ffcc] font-mono border border-[#00ffcc]/30 outline-none px-4"
             style="left: 419px; top: 370px; width: 291px; height: 50px; font-size: 18px;">
 
-        <!-- Поле КЛЮЧА (Инпут 2) -->
         <input type="password" id="input-key" placeholder="Ключ..." 
             class="absolute bg-transparent text-[#00ffcc] font-mono border border-[#00ffcc]/30 outline-none px-4"
             style="left: 1228px; top: 370px; width: 293px; height: 50px; font-size: 18px;">
 
-        <!-- Замки -->
         <div id="lock-left" class="absolute font-mono text-xl text-[#00ff00] font-bold tracking-widest" style="left: 505px; top: 597px;">OPEN</div>
         <div id="lock-right" class="absolute font-mono text-xl text-[#00ff00] font-bold tracking-widest" style="left: 1331px; top: 597px;">OPEN</div>
 
-        <!-- Холст для QR-орнамента -->
         <div class="absolute overflow-hidden flex justify-center items-center bg-black/40 border border-[#00ffcc]/20" style="left: 770px; top: 314px; width: 390px; height: 390px;">
             <canvas id="qr-canvas" width="390" height="390" class="w-full h-full"></canvas>
-            <!-- Слой наложения картинки из ГАЛЕРЕИ -->
             <img id="gallery-layer" class="absolute inset-0 w-full h-full object-cover hidden pointer-events-none" style="mix-blend-mode: color-dodge;">
         </div>
 
-        <!-- Меню СКАН (Камера / Галерея) -->
         <div id="scan-menu" class="absolute bg-black/90 border border-[#00ffcc] p-4 rounded hidden flex-col gap-3 z-50 shadow-2xl" style="left: 1228px; top: 220px; width: 293px;">
             <button id="btn-camera" class="w-full bg-[#00ffcc]/10 hover:bg-[#00ffcc]/30 text-[#00ffcc] py-2 font-mono border border-[#00ffcc]/50 transition">CAMERA</button>
             <button id="btn-gallery" class="w-full bg-[#00ffcc]/10 hover:bg-[#00ffcc]/30 text-[#00ffcc] py-2 font-mono border border-[#00ffcc]/50 transition">GALLERY</button>
         </div>
         <input type="file" id="file-input" accept="image/*" class="hidden">
 
-        <!-- Модалка «Агент, стоп!» -->
-        <div id="modal-agent" class="fixed inset-0 bg-black/80 hidden justify-center items-center z-50 animate-fade-in">
+        <div id="modal-agent" class="fixed inset-0 bg-black/80 hidden justify-center items-center z-50">
             <div class="bg-[#121212] border-2 border-red-600 p-8 text-center max-w-md shadow-2xl">
                 <h2 class="text-red-500 font-mono text-2xl font-bold mb-4 tracking-wider">АГЕНТ, СТОП!</h2>
                 <p class="text-gray-300 font-mono mb-6">QR-код не распознан или поврежден. Доступ заблокирован.</p>
@@ -54,8 +45,7 @@ document.getElementById('root').innerHTML = `
             </div>
         </div>
 
-        <!-- Оверлей ШПИОН (spy.png) -->
-        <div id="overlay-spy" class="fixed inset-0 bg-cover bg-center hidden z-50 flex flex-col justify-end items-center pb-20 animate-pulse" style="background-image: url('/spy.png');">
+        <div id="overlay-spy" class="fixed inset-0 bg-cover bg-center hidden z-50 flex flex-col justify-end items-center pb-20" style="background-image: url('spy.png');">
             <div class="bg-black/80 px-8 py-4 border border-red-500 text-center max-w-2xl">
                 <p class="text-red-500 font-mono text-xl md:text-2xl font-bold tracking-wide uppercase">
                     Держава не доверяет вам / The State does not trust you
@@ -98,7 +88,6 @@ Object.entries(BUTTONS).forEach(([name, rect]) => {
         hoverMask.style.opacity = '0';
     });
 
-    // Обработка клика по кнопке SCAN
     if (name === 'SCAN') {
         zone.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -109,7 +98,6 @@ Object.entries(BUTTONS).forEach(([name, rect]) => {
     container.appendChild(zone);
 });
 
-// Закрытие меню кликом по экрану
 document.addEventListener('click', () => scanMenu.classList.add('hidden'));
 
 // Логика замков
@@ -132,7 +120,6 @@ inputKey.addEventListener('input', () => {
         lockRight.className = 'absolute font-mono text-xl text-[#00ff00] font-bold tracking-widest';
     }
 
-    // Триггер ШПИОНА на слово "неправильно"
     if (inputKey.value.toLowerCase() === 'неправильно') {
         overlaySpy.classList.remove('hidden');
         setTimeout(() => {
@@ -144,12 +131,10 @@ inputKey.addEventListener('input', () => {
     }
 });
 
-// Кнопка GALLERY
 document.getElementById('btn-gallery').addEventListener('click', () => {
     fileInput.click();
 });
 
-// Обработка загруженного фото
 fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -159,7 +144,6 @@ fileInput.addEventListener('change', (e) => {
         galleryLayer.src = event.target.result;
         galleryLayer.classList.remove('hidden');
 
-        // Пытаемся считать QR-код с загруженной картинки
         const img = new Image();
         img.onload = () => {
             const tempCanvas = document.createElement('canvas');
@@ -173,12 +157,10 @@ fileInput.addEventListener('change', (e) => {
 
             if (code) {
                 let text = code.data;
-                // Если в конце текста знак "=", переводим фокус на КЛЮЧ
                 if (text.endsWith('=')) {
                     inputKey.focus();
                 }
             } else {
-                // Если QR не распознан — включаем модалку "Агент, стоп!"
                 modalAgent.classList.remove('hidden');
             }
         };
@@ -187,17 +169,14 @@ fileInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-// Закрытие модалки
 document.getElementById('close-modal').addEventListener('click', () => {
     modalAgent.classList.add('hidden');
 });
 
-// Заглушка под камеру
 document.getElementById('btn-camera').addEventListener('click', () => {
     alert('Подключение камеры...');
 });
 
-// Отрисовка базовой структуры QR на холсте (оригинальная математика)
 function drawBasePattern() {
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, 390, 390);
