@@ -7,10 +7,65 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        /* Стили для имитации брутального каменного интерфейса */
+        .stone-bg {
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.7);
+            border: 4px solid #3a3a3a;
+        }
+        .stone-screen {
+            background-color: #050505;
+            border: 3px solid #222;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
+        }
+        .stone-btn {
+            background: #252525;
+            border: 2px solid #444;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+        }
+        .stone-btn:hover {
+            background: #303030;
+            color: #ccc;
+            border-color: #666;
+        }
+        .stone-btn.active {
+            background: #404040;
+            color: #fff;
+            border-color: #888;
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+        }
+        .stone-input {
+            background: #121212;
+            border: 2px solid #333;
+            color: #aaa;
+        }
+        .stone-input:focus {
+            border-color: #555;
+            outline: none;
+        }
+        /* Временные замки CSS (потом заменим на графику) */
+        .lock-indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #222;
+            border: 2px solid #444;
+            transition: all 0.3s;
+        }
+        .lock-indicator.locked {
+            background: #a32a2a;
+            border-color: #ff4545;
+            box-shadow: 0 0 10px rgba(255,69,69,0.4);
+        }
+    </style>
 </head>
-<body class="bg-[#0f0f0f] flex justify-center items-center min-h-screen m-0 overflow-hidden">
+<body class="bg-[#0f0f0f] flex justify-center items-center min-h-screen m-0 overflow-hidden font-mono">
 
-    <div id="root"></div>
+    <div id="root" class="w-full max-w-4xl p-4"></div>
 
     <script src="app.js"></script>
 </body>
