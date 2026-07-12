@@ -35,6 +35,75 @@ export default function CryptoTerminal() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // --- МАТЕМАТИЧЕСКИЕ МАТРИЦЫ ОРНАМЕНТА ---
+  const PATTERNS = [
+    [[0,1,0,1,0,1,0],[1,0,0,0,0,0,1],[0,0,1,1,1,0,0],[1,0,1,1,1,0,1],[0,0,1,1,1,0,0],[1,0,0,0,0,0,1],[0,1,0,1,0,1,0]],
+    [[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0]],
+    [[1,1,1,1,1,1,1],[0,0,0,0,0,0,1],[1,1,1,1,1,0,1],[1,0,0,0,1,0,1],[1,0,1,1,1,0,1],[1,0,0,0,0,0,1],[1,1,1,1,1,1,1]],
+    [[1,1,1,1,1,1,1],[1,0,0,0,0,0,0],[1,0,1,1,1,1,1],[1,0,1,0,0,0,1],[1,0,1,1,1,0,1],[1,0,0,0,0,0,1],[1,1,1,1,1,1,1]],
+    [[1,1,1,1,1,1,1],[1,0,0,0,0,0,1],[1,0,1,1,1,0,1],[1,0,1,0,1,0,1],[1,0,1,0,0,0,1],[1,0,1,1,1,1,1],[1,0,0,0,0,0,0]],
+    [[0,0,0,0,0,1,1],[0,0,0,0,1,1,0],[0,0,0,1,1,0,0],[1,1,1,1,1,1,1],[0,0,0,1,1,0,0],[0,0,0,0,1,1,0],[0,0,0,0,0,1,1]],
+    [[1,1,1,1,1,0,0],[1,0,0,0,0,0,0],[1,0,0,0,0,0,0],[1,1,1,1,1,1,1],[0,0,0,0,0,0,1],[0,0,0,0,0,0,1],[0,0,1,1,1,1,1]],
+    [[0,0,0,0,1,1,1],[0,0,0,1,1,1,0],[0,0,1,1,1,0,0],[0,1,1,1,0,0,0],[1,1,1,0,0,0,0],[1,1,0,0,0,0,0],[1,0,0,0,0,0,0]],
+    [[1,1,0,0,0,1,1],[1,1,0,0,0,1,1],[0,0,1,0,1,0,0],[0,0,0,1,0,0,0],[0,0,1,0,1,0,0],[1,1,0,0,0,1,1],[1,1,0,0,0,1,1]],
+    [[0,0,0,1,0,0,0],[0,0,1,1,1,0,0],[0,1,1,1,1,1,0],[1,1,1,1,1,1,1],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0],[0,0,0,1,0,0,0]],
+    [[1,1,1,1,1,1,0],[1,0,0,0,0,1,0],[1,0,1,1,1,1,0],[1,0,1,0,0,0,0],[1,0,1,1,1,1,1],[1,0,0,0,0,0,0],[1,1,1,1,1,1,1]],
+    [[0,0,0,0,0,0,1],[0,0,0,0,0,1,1],[0,0,0,0,1,1,0],[0,0,0,1,1,0,0],[0,0,1,1,0,0,0],[0,1,1,0,0,0,0],[1,1,0,0,0,0,0]],
+    [[0,0,0,1,0,0,0],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[1,0,0,0,0,0,1],[0,1,1,0,1,1,0],[0,1,1,0,1,1,0],[0,0,0,1,0,0,0]],
+    [[1,0,0,0,0,0,1],[0,1,0,0,0,1,0],[0,0,1,0,1,0,0],[0,0,0,1,0,0,0],[0,0,1,0,1,0,0],[0,1,0,0,0,1,0],[1,0,0,0,0,0,1]],
+    [[0,0,1,1,1,0,0],[0,0,1,1,1,0,0],[1,1,0,1,0,1,1],[1,1,1,0,1,1,1],[1,1,0,1,0,1,1],[0,0,1,1,1,0,0],[0,0,1,1,1,0,0]],
+    [[0,0,1,0,1,0,0],[0,1,0,0,0,1,0],[1,0,0,0,0,0,1],[0,0,0,0,0,0,0],[1,0,0,0,0,0,1],[0,1,0,0,0,1,0],[0,0,1,0,1,0,0]],
+    [[0,1,1,0,1,1,0],[1,0,1,0,1,0,1],[1,1,0,0,0,1,1],[0,0,0,1,0,0,0],[1,1,0,0,0,1,1],[1,0,1,0,1,0,1],[0,1,1,0,1,1,0]],
+    [[0,1,0,1,0,1,0],[1,1,0,1,0,1,1],[0,0,0,1,0,0,0],[1,1,1,1,1,1,1],[0,0,0,1,0,0,0],[1,1,0,1,0,1,1],[0,1,0,1,0,1,0]],
+    [[1,1,1,1,1,1,1],[0,1,1,1,1,1,1],[0,0,1,1,1,1,1],[0,0,0,1,1,1,1],[0,0,0,0,1,1,1],[0,0,0,0,0,1,1],[0,0,0,0,0,0,1]],
+    [[0,0,0,0,0,0,0],[1,0,0,0,0,0,0],[1,1,0,0,0,0,0],[1,1,1,0,0,0,0],[1,1,1,1,0,0,0],[1,1,1,1,1,0,0],[1,1,1,1,1,1,0]]
+  ];
+
+  const solidBlock = Array.from({ length: 7 }, () => Array(7).fill(1));
+  const FILLER_IDX = [0, 8, 13, 16, 17];
+
+  const generateMask = (size: number) => {
+    if (size % 2 === 0) size += 1;
+    let matrix = Array(size).fill(null).map(() => Array(size).fill(0));
+    let centerY = Math.floor(size / 2);
+    let centerX = Math.floor(size / 2);
+    let maxBlock = Math.ceil(centerY / 7) + 1;
+    let blockMap: Record<string, number[][]> = {};
+
+    for (let by = 0; by < maxBlock; by++) {
+      for (let bx = by; bx < maxBlock; bx++) {
+        let pat = PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
+        if (JSON.stringify(pat) === JSON.stringify(solidBlock)) {
+          pat = PATTERNS[FILLER_IDX[Math.floor(Math.random() * FILLER_IDX.length)]];
+        }
+        blockMap[`${bx},${by}`] = pat;
+      }
+    }
+
+    for (let y = 0; y <= centerY; y++) {
+      for (let x = y; x <= centerX; x++) {
+        let bx = Math.floor(x / 7);
+        let by = Math.floor(y / 7);
+        let k = `${bx},${by}`;
+        if (!blockMap[k]) k = `${by},${bx}`;
+        let pat = blockMap[k];
+        if (!pat) continue;
+
+        if (pat[y % 7][x % 7] === 1) {
+          matrix[centerY + y][centerX + x] = 1;
+          matrix[centerY + x][centerX + y] = 1;
+          matrix[centerY - y][centerX + x] = 1;
+          matrix[centerY - x][centerX + y] = 1;
+          matrix[centerY + y][centerX - x] = 1;
+          matrix[centerY + x][centerX - y] = 1;
+          matrix[centerY - y][centerX - x] = 1;
+          matrix[centerY - x][centerX - y] = 1;
+        }
+      }
+    }
+    return matrix;
+  };
+
   // --- КРИПТОГРАФИЯ (PBKDF2 + AES-GCM) ---
   const encryptData = async (plaintext: string, passwordKey: string): Promise<string> => {
     const enc = new TextEncoder();
@@ -46,7 +115,7 @@ export default function CryptoTerminal() {
     );
     const nonce = crypto.getRandomValues(new Uint8Array(12));
     const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, enc.encode(plaintext));
-    const comb = new Uint8Array(40 + ct.byteLength);
+    const comb = new Uint8Array(28 + ct.byteLength);
     comb.set(salt, 0);
     comb.set(nonce, 16);
     comb.set(new Uint8Array(ct), 28);
@@ -72,7 +141,7 @@ export default function CryptoTerminal() {
       const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, key, ct);
       return new TextDecoder().decode(dec);
     } catch (e) {
-      return null; // Ошибка расшифровки (неверный ключ)
+      return null;
     }
   };
 
@@ -81,32 +150,65 @@ export default function CryptoTerminal() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    if (!ctx || !dataString) return;
+    if (!ctx) return;
 
-    ctx.clearRect(0, 0, 400, 400);
-    ctx.fillStyle = "rgb(20, 20, 20)";
-    ctx.fillRect(0, 0, 400, 400);
+    ctx.fillStyle = "#110e0b";
+    ctx.fillRect(0, 0, 512, 512);
+
+    if (!dataString.trim()) {
+      canvas.style.opacity = "0";
+      return;
+    }
+
+    canvas.style.opacity = "1";
 
     try {
       const utf8 = unescape(encodeURIComponent(dataString));
-      const qr = qrcode(0, 'M');
-      qr.addData(utf8);
-      qr.make();
-      const mc = qr.getModuleCount();
-      const cellSize = Math.floor(380 / mc);
-      const offset = Math.floor((400 - cellSize * mc) / 2);
+      const qrObj = qrcode(0, 'M');
+      qrObj.addData(utf8);
+      qrObj.make();
+      let mc = qrObj.getModuleCount();
+      
+      let qz = 2, fi = 1, fo = 2;
+      let ornSize = mc + (qz * 2);
+      if (ornSize % 2 === 0) ornSize += 1;
+      let total = ornSize + (fi * 2) + (fo * 2);
+      if (total % 2 === 0) total += 1;
 
-      for (let r = 0; r < mc; r++) {
-        for (let c = 0; c < mc; c++) {
-          if (qr.isDark(r, c)) {
-            const isPattern = (r + c) % 3 === 0 || r % 5 === 0;
-            ctx.fillStyle = isPattern ? "rgb(200, 180, 140)" : "rgb(255, 255, 255)";
-            ctx.fillRect(offset + c * cellSize, offset + r * cellSize, cellSize, cellSize);
-          }
+      const mod = 512 / total;
+      
+      ctx.fillStyle = "rgb(180, 160, 140)";
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.fillStyle = "rgb(25, 20, 15)";
+      ctx.fillRect(fo * mod, fo * mod, 512 - (fo * mod * 2), 512 - (fo * mod * 2));
+
+      const maskR = generateMask(ornSize);
+      const maskG = generateMask(ornSize);
+      const coreStart = fo + fi + qz;
+
+      for (let r = 0; r < total; r++) {
+        for (let c = 0; c < total; c++) {
+          let isO = (r < fo || r >= total - fo || c < fo || c >= total - fo);
+          let isI = !isO && (r < fo + fi || r >= total - (fo + fi) || c < fo + fi || c >= total - (fo + fi));
+          if (isO || isI) continue;
+
+          let oR = r - (fo + fi);
+          let oC = c - (fo + fi);
+          let qrR = r - coreStart;
+          let qrC = c - coreStart;
+          let isC = (qrR >= 0 && qrR < mc && qrC >= 0 && qrC < mc);
+
+          let vR = maskR[oR] && maskR[oR][oC] ? 210 : 35;
+          let vG = maskG[oR] && maskG[oR][oC] ? 210 : 35;
+          let vB = 35;
+          if (isC) vB = qrObj.isDark(qrR, qrC) ? 210 : 35;
+
+          ctx.fillStyle = `rgb(${vR}, ${vG}, ${vB})`;
+          ctx.fillRect(c * mod, r * mod, mod + 0.4, mod + 0.4);
         }
       }
     } catch (e) {
-      console.error("QR generation failed", e);
+      console.error("Canvas seal draw failed: ", e);
     }
   }, []);
 
@@ -115,7 +217,7 @@ export default function CryptoTerminal() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
-      setGalleryImg(dataUrl); // Накладываем картинку поверх холста
+      setGalleryImg(dataUrl); 
 
       const img = new Image();
       img.onload = () => {
@@ -174,7 +276,7 @@ export default function CryptoTerminal() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) processImage(file);
-    e.target.value = ''; // сброс для повторного выбора того же файла
+    e.target.value = ''; 
   };
 
   const handleSave = () => {
@@ -190,10 +292,10 @@ export default function CryptoTerminal() {
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       setIsBlinking(false);
-      const trimmedKey = key.trim();
+      const trimmedKey = key.trim().toLowerCase();
 
-      // Проверка на слово "неправильно"
-      if (trimmedKey.toLowerCase() === 'неправильно') {
+      // Проверка на слово "неправильно" -> Оверлей spy.png
+      if (trimmedKey === 'неправильно') {
         setShowSpyOverlay(true);
         setTimeout(() => {
           setShowSpyOverlay(false);
@@ -204,13 +306,15 @@ export default function CryptoTerminal() {
 
       // Если есть ожидающий шифр
       if (pendingCipher && trimmedKey) {
-        const result = await decryptData(pendingCipher, trimmedKey); // .trim() применен выше
+        const result = await decryptData(pendingCipher, trimmedKey);
         
         if (result !== null) {
           setText(result);
           setPendingCipher(null);
+          setGalleryImg(null); // Очищаем наложение при успешной расшифровке
         } else {
-          // Просто неверный ключ (ничего не делаем, или можно добавить тряску)
+          // Просто неверный ключ (тихо сбрасываем поле)
+          setKey('');
         }
       }
     }
@@ -277,12 +381,12 @@ export default function CryptoTerminal() {
           {/* Холст с орнаментом */}
           <canvas 
             ref={canvasRef} 
-            width="400" 
-            height="400" 
-            className="max-w-full max-h-full mix-blend-color-dodge"
+            width="512" 
+            height="512" 
+            className="max-w-full max-h-full"
           />
           
-          {/* Наложенное фото из галереи */}
+          {/* Наложенное фото из галереи (color-dodge поверх холста) */}
           {galleryImg && (
             <img 
               src={galleryImg} 
@@ -344,7 +448,7 @@ export default function CryptoTerminal() {
           <div className="absolute inset-0 bg-black/95 z-50 flex flex-col justify-center items-center text-center p-8">
             <div className="text-8xl mb-6 animate-bounce">🕵️‍♂️</div>
             <h2 className="text-red-500 text-4xl font-bold mb-4 tracking-widest font-mono">АГЕНТ, СТОП!</h2>
-            <p className="text-gray-300 text-lg mb-8">Ці дані зашифровані. Назовіть секретне слово.</p>
+            <p className="text-gray-300 text-lg mb-8">Ці дані зашифровані. Назовьте секретне слово.</p>
             <button 
               onClick={() => setShowAgentModal(false)}
               className="px-8 py-3 border border-red-500 text-red-500 hover:bg-red-500 hover:text-black transition-colors tracking-widest font-bold"
@@ -363,7 +467,7 @@ export default function CryptoTerminal() {
               className="max-w-[600px] w-full object-contain drop-shadow-2xl animate-bounce"
             />
             <div className="mt-8 text-center">
-              <h1 className="text-red-600 text-5xl font-bold tracking-wider drop-shadow-lg" style={{ textShadow: '0 0 20px rgba(220, 38, 38, 0.8)' }}>
+              <h1 className="text-red-600 text-5xl font-bold tracking-wider" style={{ textShadow: '0 0 20px rgba(220, 38, 38, 0.8)' }}>
                 ДЕРЖАВА НЕ ДОВІРЯЄ ВАМ
               </h1>
               <p className="text-white text-2xl mt-4 tracking-widest">
