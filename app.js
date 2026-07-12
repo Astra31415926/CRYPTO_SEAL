@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === ИНИЦИАЛИЗАЦИЯ СТРУКТУРЫ ===
     function init() {
+        injectKeyframes();
         setupWrapper();
         setupHoverZones();
         setupLocks();
@@ -75,6 +76,23 @@ document.addEventListener('DOMContentLoaded', () => {
         handleResize();
         window.addEventListener('resize', handleResize);
         updateUI();
+    }
+
+    // Добавление CSS анимаций pulse и bounce, которых не хватало
+    function injectKeyframes() {
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes pulse {
+                0% { border-color: rgba(255,255,255,0.3); box-shadow: 0 0 2px rgba(0,255,0,0); }
+                50% { border-color: #0f0; box-shadow: 0 0 10px rgba(0,255,0,0.5); }
+                100% { border-color: rgba(255,255,255,0.3); box-shadow: 0 0 2px rgba(0,255,0,0); }
+            }
+            @keyframes bounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     function setupWrapper() {
@@ -226,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupModals() {
-        // Модалка "Агент, стоп!"
         Object.assign(modalAgent.style, {
             position: 'absolute', top: '0', left: '0', right: '0', bottom: '0',
             backgroundColor: 'rgba(0,0,0,0.95)', zIndex: '50', display: 'none',
@@ -241,7 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         wrapper.appendChild(modalAgent);
 
-        // Оверлей Шпиона (spy.png)
         Object.assign(modalSpy.style, {
             position: 'absolute', top: '0', left: '0', right: '0', bottom: '0',
             backgroundColor: 'rgba(0,0,0,0.9)', zIndex: '50', display: 'none',
@@ -257,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         wrapper.appendChild(modalSpy);
 
-        // Делегирование событий для модалок
         wrapper.addEventListener('click', (e) => {
             if (e.target.id === 'btn-close-agent') {
                 showAgentModal = false;
@@ -384,14 +399,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const mod = 512 / total;
             
-            // Базовый камень
             ctx.fillStyle = "rgb(180, 160, 140)";
             ctx.fillRect(0, 0, 512, 512);
-            // Внутренняя выемка
             ctx.fillStyle = "rgb(25, 20, 15)";
             ctx.fillRect(fo * mod, fo * mod, 512 - (fo * mod * 2), 512 - (fo * mod * 2));
 
-            // Генерация двух независимых масок для R и G каналов
             const maskR = generateMask(ornSize);
             const maskG = generateMask(ornSize);
             const coreStart = fo + fi + qz;
@@ -408,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     let qrC = c - coreStart;
                     let isC = (qrR >= 0 && qrR < mc && qrC >= 0 && qrC < mc);
 
-                    // Математическое смешение RGB каналов
                     let vR = maskR[oR] && maskR[oR][oC] ? 210 : 35;
                     let vG = maskG[oR] && maskG[oR][oC] ? 210 : 35;
                     let vB = 35;
@@ -546,7 +557,6 @@ document.addEventListener('DOMContentLoaded', () => {
             isBlinking = false;
             const trimmedKey = keyInput.value.trim().toLowerCase();
 
-            // Пасхалка со словом "неправильно"
             if (trimmedKey === 'неправильно') {
                 showSpyOverlay = true;
                 updateUI();
@@ -559,7 +569,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Дешифровка
             if (pendingCipher && trimmedKey) {
                 const result = await decryptData(pendingCipher, trimmedKey);
                 
@@ -570,7 +579,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     galleryImg.style.display = 'none';
                     updateUI();
                 } else {
-                    // Неверный ключ - просто очищаем поле
                     keyInput.value = '';
                     key = '';
                     updateUI();
@@ -579,6 +587,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === ЗАПУСК ===
     init();
 });
